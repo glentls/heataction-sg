@@ -17,7 +17,7 @@ The notebook never drops an existing schema or table. Confirm schema names befor
 
 ## Remaining platform work
 
-- Ingest demographic and boundary snapshots into Bronze, then validate their Silver joins.
+- Ingest the verified local snapshots from `data/reference/observed/` into Bronze, then validate their Silver joins. The shared `heataction.geography.build_pilot(reference_root)` loader can verify the uploaded snapshots and mappings; pass their actual workspace/volume directory. This loader is implemented locally but has not yet been executed in Databricks.
 - Store reviewed area-weather mappings and demographic vintage in Unity Catalog.
 - Materialise Gold area priorities and plan scenarios.
 - Connect a Databricks App or dashboard to those tables. The local HTTP server is a development interface, not a supplied production Databricks App deployment.

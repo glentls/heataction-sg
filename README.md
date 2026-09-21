@@ -27,6 +27,20 @@ If `py` is unavailable or reports `No installed Python found!`, but `python --ve
 
 Select `.venv` as the Python interpreter in VS Code if using the included debug configuration and tasks. The command line works independently of the editor extensions.
 
+## Real-area map and planning pilot
+
+The observed pilot includes **Ang Mo Kio, Bedok and Jurong West**, official Census 2020 age profiles, and all 55 URA Master Plan 2019 planning-area boundaries. The reference snapshots ship with the project; map rendering needs no external tile service or extra packages.
+
+```powershell
+.\.venv\Scripts\python.exe -m heataction check-areas
+.\.venv\Scripts\python.exe -m heataction ingest --source all
+.\.venv\Scripts\python.exe -m heataction serve --mode observed --pilot --port 8001
+```
+
+Open http://127.0.0.1:8001. Select an area to inspect its age profile, population vintage, mapped station, weather freshness and assignment explanation. Switch between senior population share and pilot station heat, zoom to an area, or exclude a pilot area from the plan. The other 52 areas provide demographic context only.
+
+The 2020 population counts are historical, not current estimates. Pilot mapping checks verify station identities, source coordinates inside the 2019 polygons, and demographic joins; they do not prove station representativeness or partner approval. Missing/stale weather stays Unknown and receives no heat-based assignment. The default synthetic demo remains separate.
+
 ## macOS or Linux
 
 ```bash
@@ -84,11 +98,14 @@ This compares persistence, a time-of-day baseline and gradient boosting with chr
 | Location | Purpose |
 |---|---|
 | `heataction/sources.py` | Public API access, response normalization and raw snapshots |
+| `heataction/geography.py` | Verified Census/URA joins, polygon checks and reviewed pilot mappings |
+| `data/reference/observed/` | Official demographic/boundary snapshots, checksums and mapping audit |
 | `heataction/storage.py` | Local cache and ingestion run log |
 | `heataction/planner.py` | Priority policy, freshness checks and capacity allocation |
 | `heataction/evaluation.py` | Exact next-hour targets and chronological model comparison |
 | `heataction/server.py` | Local app API and CSV exports |
 | `heataction/web/index.html` | Browser interface |
+| `heataction/web/map.js` | Interactive local SVG map and area detail panels |
 | `notebooks/` | Databricks ingestion and MLflow experiment source notebooks |
 | `tests/` | Data, allocation and temporal validation checks |
 | `docs/STATUS.md` | Current truth about implementation and validation |

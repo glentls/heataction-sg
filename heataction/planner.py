@@ -71,7 +71,12 @@ def build_plan(areas, readings, *, as_of, budget=2, contacts=10, selected=None,
             status = "Mapping unverified"
         elif observation is None:
             status = "No observation"
-        elif age > max_age_minutes:
+        elif "station_latitude" in area and "station_longitude" in area:
+            from .geography import haversine_km
+            if haversine_km(area["station_longitude"], area["station_latitude"],
+                            observation["longitude"], observation["latitude"]) > 0.1:
+                status = "Station moved; mapping review needed"
+        if status == "Ready" and age > max_age_minutes:
             status = "Stale observation"
         predicted = float(observation["value"]) if observation and status == "Ready" else None
         if predicted is not None and not math.isfinite(predicted):

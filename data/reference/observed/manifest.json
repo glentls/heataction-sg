@@ -1,0 +1,26 @@
+{
+  "data_mode": "observed",
+  "license_url": "https://data.gov.sg/open-data-licence",
+  "sources": [
+    {
+      "dataset_id": "d_d95ae740c0f8961a0b10435836660ce0",
+      "source_url": "https://data.gov.sg/datasets/d_d95ae740c0f8961a0b10435836660ce0/view",
+      "download_endpoint": "https://api-open.data.gov.sg/v1/public/api/datasets/d_d95ae740c0f8961a0b10435836660ce0/poll-download",
+      "file": "census2020_age.csv",
+      "vintage": 2020,
+      "retrieved_at": "2026-09-21T07:47:08+00:00",
+      "sha256": "9d1183c4335a8189272e244ae86bd9770d61854bc30527055df50697bf730c84",
+      "bytes": 85943
+    },
+    {
+      "dataset_id": "d_4765db0e87b9c86336792efe8a1f7a66",
+      "source_url": "https://data.gov.sg/datasets/d_4765db0e87b9c86336792efe8a1f7a66/view",
+      "download_endpoint": "https://api-open.data.gov.sg/v1/public/api/datasets/d_4765db0e87b9c86336792efe8a1f7a66/poll-download",
+      "file": "planning_areas_2019.geojson",
+      "vintage": 2019,
+      "retrieved_at": "2026-09-21T07:47:08+00:00",
+      "sha256": "f23856251b467089f788d0fff72ef5a38e753f21aa69b4352401d7ed50d380cc",
+      "bytes": 2092229
+    }
+  ]
+}

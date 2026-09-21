@@ -4,7 +4,7 @@ Version 0.1.0. Updated 21 September 2026.
 
 ## Current milestone
 
-The local first iteration is implemented. It demonstrates the planning flow with clearly labelled synthetic data, and live WBGT and rainfall collection has succeeded on Glen's machine. The next implementation milestone is verified demographic ingestion and geographic joins.
+The local app now includes an observed three-area planning pilot with Census 2020 age profiles, matched URA 2019 boundaries and an interactive Singapore map. Live WBGT/rainfall collection succeeds on Glen's machine. Technical station mapping checks are implemented; partner/field validation and Databricks execution remain pending. The next feature milestone is saved scenario comparison and coordinator assignment controls.
 
 ## Implemented
 
@@ -18,6 +18,8 @@ The local first iteration is implemented. It demonstrates the planning flow with
 - Optional baseline and gradient-boosting experiment with exact next-hour labels, chronological splits and station metrics.
 - Databricks source notebooks for Delta ingestion and MLflow evaluation.
 - VS Code tasks, debug configuration, tests and documentation.
+- Strict observed Census/URA joins with source checksums, three documented station mappings and moved-station gating.
+- Interactive local SVG map of all 55 planning areas, demographic and pilot heat layers, age profiles, coverage status and assignment explanations.
 
 ## Verified here
 
@@ -42,16 +44,28 @@ The local first iteration is implemented. It demonstrates the planning flow with
 
 - Direct Python outbound access timed out in the original validation environment. Live collection has since succeeded on Glen's computer as recorded below; Databricks source access still needs verification.
 - Historical API date access, completeness and pagination need deployment smoke tests.
-- Initial validation had no browser executable. This Windows machine has Chrome, but the headless check failed as recorded above. Actual browser rendering and interactive layout should be checked when opening the app locally.
+- The initial sandboxed browser check failed. The observed pilot has since passed real Chrome interaction and desktop/mobile rendering checks outside the sandbox; broader user testing remains pending.
 - Databricks notebooks have not been run in a workspace. Catalogue permissions, quotas and source access remain to be confirmed.
-- No real population table is integrated. No actual planning-area map or automatic spatial mapping is implemented.
+- Real population and boundaries are integrated locally. Mapping is limited to three technically reviewed station proxies; automatic nationwide assignment and partner validation are not implemented.
 - Rainfall is ingested and displayed but not used by the initial model.
 - The app uses persistence only. The optional ML experiment does not deploy a model into the app.
 - No user interviews, production deployment, social-impact measurements or competition submission have occurred.
 
 ## Next task
 
-Continue with Census/URA ingestion and reviewed geographic mappings. Historical weather access and manual browser inspection also remain pending.
+Add saved scenario comparison and expose assignment locks with reason logging. Continue collecting observed weather history; historical API access, field validation and Databricks deployment remain separate pending tasks.
+
+## Real-area map milestone, 21 September 2026
+
+- Downloaded official Census 2020 age data and URA MP2019 planning-area GeoJSON into `data/reference/observed/` with dataset IDs, attribution, source timestamps and SHA-256 checksums.
+- Verified three prototype links: Ang Mo Kio / S141 (162,280 residents; 35,220 aged 65+), Bedok / S129 (276,990; 53,370), Jurong West / S132 (262,730; 33,730). All counts are Census 2020. Exact source totals and geometric containment are tested; no field validation is claimed.
+- Added `check-areas` and `serve --mode observed --pilot --port 8001`. Default demo and observed inspector remain available. The pilot loads the verified references on startup and refuses mixed synthetic mode.
+- Added a clickable/keyboard-accessible map with all 55 boundaries, 2020 senior-share and pilot station-heat layers, area zoom, three station markers, age profiles, coverage/freshness status, source IDs and mapping explanations. Other areas are context only. Area details can toggle the existing service-area selection.
+- Extended CSV provenance with area/boundary dataset identifiers and mapping review fields. Station displacement over 100 m now blocks allocation for the affected reviewed link.
+- All 25 regression tests pass (16 existing, 9 new), including actual source counts, aggregation, missing values, geometry holes, altered snapshots, outside/moved stations, empty weather and HTTP mode isolation. JavaScript syntax checks pass.
+- Chrome checks passed for map loading, population counts, selection, keyboard interaction, zoom/reset, heat layer, service-area toggles and clearing/recovering from a failed plan request. Desktop and 390-pixel mobile screenshots were inspected; mobile table overflow was corrected. Evidence is local in ignored `artifacts/pilot-desktop.png` and `artifacts/pilot-mobile.png`.
+- Refreshed both live feeds successfully (30 WBGT / 89 rainfall rows processed, zero quarantined). At the browser check around 15:58 SGT all three pilot stations were fresh and Low; zero extra heat-driven slots was correct. These readings are time-specific, not a continuing freshness guarantee.
+- Left the pilot server running at http://127.0.0.1:8001, with local logs under `data/runtime/observed/pilot-server.*.log`. Databricks notebooks were not executed and no cloud resources were created.
 
 ## Live collection and GitHub connection, 21 September 2026
 

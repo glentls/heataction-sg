@@ -27,3 +27,15 @@ The development planner requires a reading no more than 30 minutes old, ignores 
 ## 007: No unsupported precision
 
 No block-level heat model, medical risk classification, indoor temperature prediction or cooling-centre capacity claim is implemented. Rainfall collection is implemented but rainfall feature engineering is a subsequent milestone.
+
+## 008: Matched historical population and geographic vintages
+
+The real-area pilot uses the official Census 2020 age-by-area table with URA Master Plan 2019 boundaries, because that Census table explicitly uses those boundaries. The two unmodified snapshots ship under `data/reference/observed/` with source IDs, checksums and attribution. The app exposes 2020 age profiles for geographic context and restricts planning to Ang Mo Kio, Bedok and Jurong West. Older demographics are explicitly historical, not estimates for 2026. Downloads and reviewed transformations are separate from runtime weather and synthetic demo data.
+
+## 009: Technical review of bounded station proxies
+
+The three pilot links are explicit curated mappings to observed WBGT station identities whose source coordinates lie inside their matched polygons. `mapping_verified` means the documented prototype technical source/containment review passed; it does not imply coordinator approval, field validation or uniform heat coverage. Each startup rechecks containment, checksums and exact Census joins. A later station-coordinate displacement over 100 metres blocks planning pending review. Missing/stale weather still blocks assignment. Distance labels use the boundary bounding-box centre and do not suggest household-level precision. Population priority uses the fixed three-area cohort; the other 52 boundaries are context only.
+
+## 010: Local SVG geography without third-party tiles
+
+The browser renders the official polygons as an interactive SVG with selectable demographic and station-proxy heat layers, station reference dots, keyboard controls, area zoom and detailed provenance. No CDN, map key, tile downloads or new runtime dependency is needed. Geography is served only with explicit observed `--pilot` mode; synthetic mode cannot load it. This is the local development interface; the shared geography parser and reference snapshots can be reused in the Databricks pipeline, whose execution and deployment remain pending.

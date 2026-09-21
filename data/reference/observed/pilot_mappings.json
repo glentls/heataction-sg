@@ -1,0 +1,48 @@
+{
+  "data_mode": "observed",
+  "boundary_dataset_id": "d_4765db0e87b9c86336792efe8a1f7a66",
+  "reviewed_at": "2026-09-21",
+  "review_scope": "Technical source-ID, coordinate-containment and demographic-join review for a prototype; no partner or field validation.",
+  "station_source_url": "https://api-open.data.gov.sg/v2/real-time/api/weather?api=wbgt",
+  "mappings": [
+    {
+      "area_name": "Ang Mo Kio",
+      "station": {
+        "station_id": "S141",
+        "station_name": "Yio Chu Kang Stadium",
+        "latitude": 1.382564,
+        "longitude": 103.84619,
+        "observed_at": "2026-09-21T07:00:00+00:00",
+        "retrieved_at": "2026-09-21T07:23:23+00:00"
+      },
+      "review_status": "technical_checks_passed",
+      "review_note": "Station ID, name and coordinates inspected against the observed NEA WBGT response. The source coordinates must fall inside this exact MP2019 planning-area polygon; the loader rechecks containment on every startup. The Census planning-area total is joined by exact normalized name. No claim of uniform heat or population-weighted coverage."
+    },
+    {
+      "area_name": "Bedok",
+      "station": {
+        "station_id": "S129",
+        "station_name": "Bedok North Street 2",
+        "latitude": 1.325746,
+        "longitude": 103.939691,
+        "observed_at": "2026-09-21T07:00:00+00:00",
+        "retrieved_at": "2026-09-21T07:23:23+00:00"
+      },
+      "review_status": "technical_checks_passed",
+      "review_note": "Station ID, name and coordinates inspected against the observed NEA WBGT response. The source coordinates must fall inside this exact MP2019 planning-area polygon; the loader rechecks containment on every startup. The Census planning-area total is joined by exact normalized name. No claim of uniform heat or population-weighted coverage."
+    },
+    {
+      "area_name": "Jurong West",
+      "station": {
+        "station_id": "S132",
+        "station_name": "Jurong West Street 93",
+        "latitude": 1.337859,
+        "longitude": 103.695383,
+        "observed_at": "2026-09-21T07:00:00+00:00",
+        "retrieved_at": "2026-09-21T07:23:23+00:00"
+      },
+      "review_status": "technical_checks_passed",
+      "review_note": "Station ID, name and coordinates inspected against the observed NEA WBGT response. The source coordinates must fall inside this exact MP2019 planning-area polygon; the loader rechecks containment on every startup. The Census planning-area total is joined by exact normalized name. No claim of uniform heat or population-weighted coverage."
+    }
+  ]
+}

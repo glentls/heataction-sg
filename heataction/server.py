@@ -22,7 +22,9 @@ def export_csv(plan):
     buf = io.StringIO(newline="")
     fields = ["data_mode", "as_of", "budget", "contacts_per_slot", "count_weight", "name", "assigned",
               "contact_capacity", "priority", "category", "status", "forecast_wbgt", "forecast_method",
-              "forecast_target", "observed_at", "station_id", "population_year", "population_source", "mapping_method"]
+              "forecast_target", "observed_at", "station_id", "population_year", "population_source", "mapping_method",
+              "area_id", "population_dataset_id", "boundary_year", "boundary_dataset_id",
+              "mapping_review_scope", "mapping_reviewed_at", "mapping_distance_km"]
     writer = csv.DictWriter(buf, fields)
     writer.writeheader()
     for row in plan["rows"]:
@@ -32,7 +34,10 @@ def export_csv(plan):
     return buf.getvalue()
 
 
-def serve(mode, port, area_path=None):
+def serve(mode, port, area_path=None, *, pilot=False):
+    if pilot and (mode != "observed" or area_path is not None):
+        raise ValueError("--pilot requires --mode observed and cannot be combined with --areas")
+    geography = None
     root = Path(f"data/runtime/{mode}")
     if mode == "demo":
         if not (root / "mode.json").exists():
@@ -40,7 +45,11 @@ def serve(mode, port, area_path=None):
         areas = json.loads((root / "areas.json").read_text(encoding="utf-8"))
         demo_time = json.loads((root / "mode.json").read_text())["as_of"]
     else:
-        if area_path is None:
+        if pilot:
+            from .geography import build_pilot
+            geography = build_pilot()
+            areas = geography["areas"]
+        elif area_path is None:
             areas = []  # Observation inspector works before demographics are ready.
         else:
             areas = json.loads(area_path.read_text(encoding="utf-8"))
@@ -65,6 +74,13 @@ def serve(mode, port, area_path=None):
                 parsed = urlparse(self.path)
                 if parsed.path == "/":
                     return self.send_body((Path(__file__).parent / "web/index.html").read_text(encoding="utf-8"), "text/html")
+                if parsed.path in ("/map.js", "/map.css"):
+                    mime = "application/javascript" if parsed.path.endswith(".js") else "text/css"
+                    return self.send_body((Path(__file__).parent / "web" / parsed.path[1:]).read_text(encoding="utf-8"), mime)
+                if parsed.path == "/api/geography":
+                    if geography is None:
+                        return self.send_body(json.dumps({"error": "Geography requires the observed --pilot mode"}), "application/json", 404)
+                    return self.send_body(json.dumps(geography, allow_nan=False), "application/json")
                 if parsed.path not in ("/api/plan", "/api/export"):
                     return self.send_body("Not found", "text/plain", 404)
                 params = parse_qs(parsed.query, keep_blank_values=True)
@@ -81,7 +97,7 @@ def serve(mode, port, area_path=None):
                     latest[(record["source"], record["station_id"])] = record
                 plan.update({"data_mode": "synthetic" if mode == "demo" else "observed",
                              "recent_runs": recent_runs(root), "latest_observations": list(latest.values()),
-                             "has_areas": bool(areas)})
+                             "has_areas": bool(areas), "has_geography": geography is not None})
                 if parsed.path == "/api/export":
                     return self.send_body(export_csv(plan), "text/csv", filename="heataction_plan.csv")
                 self.send_body(json.dumps(plan, allow_nan=False), "application/json")

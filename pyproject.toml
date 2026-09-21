@@ -16,4 +16,4 @@ ml = ["scikit-learn>=1.5,<2"]
 include = ["heataction*"]
 
 [tool.setuptools.package-data]
-heataction = ["web/*.html"]
+heataction = ["web/*.html", "web/*.js", "web/*.css"]

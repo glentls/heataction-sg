@@ -18,6 +18,8 @@ Open http://127.0.0.1:8000. The demo generated 4,033 synthetic observations; all
 
 ## Continuation prompt
 
+The real-area map milestone is now implemented. Start the observed pilot with `.\.venv\Scripts\python.exe -m heataction serve --mode observed --pilot --port 8001`; see STATUS.md and DATA.md for the verified Census/URA joins and technical station review. All 25 regression tests and desktop/mobile pilot browser checks pass. The next feature milestone is saved scenario comparison and assignment controls. The older handoff prompt below describes the original project starting point, not the latest state.
+
 Open the project folder containing README.md. Use this message to give a coding assistant the context:
 
 > We are building HeatAction SG for DAISI 2026 B1 HeatGuard. Read AGENTS.md, README.md, docs/STATUS.md, docs/DATA.md and docs/TASKS.md before making changes. The local synthetic app and collector are implemented. Databricks source notebooks are supplied but workspace execution is pending. Start by helping me run the app and collect both real weather feeds. Then implement verified Census/URA ingestion and reviewed area-weather joins. Preserve explicit synthetic/observed labels. Keep the documentation updated after meaningful changes, and report actual test results. Do not claim the model improves on a baseline until real chronological evaluation supports it.

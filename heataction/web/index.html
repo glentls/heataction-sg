@@ -3,6 +3,7 @@
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
   <title>HeatAction SG</title>
+  <link rel="stylesheet" href="/map.css">
   <style>
     :root{--ink:#17363d;--teal:#007b78;--bg:#f3f6f4;--muted:#52666c;--border:#d9e3df}
     *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,sans-serif}
@@ -25,6 +26,26 @@
 <header><h1>HeatAction SG</h1><p>Community outreach planning for hot periods</p></header>
 <main>
   <div id="notice" class="notice" role="status">Loading data status...</div>
+  <section id="geography" class="panel geography" aria-labelledby="mapTitle" hidden>
+    <div class="map-heading"><div><span class="eyebrow">REAL AREAS · HISTORICAL DEMOGRAPHICS</span><h2 id="mapTitle">Where could outreach help?</h2><p class="muted">Explore Singapore's age profiles and the three-area weather pilot.</p></div><span class="reference-badge">Census 2020 / Boundaries 2019</span></div>
+    <div id="mapStatus" role="status" aria-live="polite"></div>
+    <div class="map-layout">
+      <div>
+        <div class="map-controls">
+          <label for="mapLayer">Colour areas by<select id="mapLayer"><option value="population">Residents aged 65+ (%)</option><option value="heat">Pilot station heat proxy</option></select></label>
+          <label for="mapArea">Inspect an area<select id="mapArea" aria-label="Inspect a planning area"></select></label>
+        </div>
+        <div class="map-canvas">
+          <svg id="areaMap" viewBox="0 0 800 430" role="group" aria-labelledby="mapSvgTitle mapSvgDesc"><title id="mapSvgTitle">Singapore planning areas</title><desc id="mapSvgDesc">Choose an area using the map or the area selector. Thick outlines identify the three pilot areas. Dots are their reviewed WBGT station locations.</desc></svg>
+          <div class="map-buttons"><button id="mapReset" class="secondary" type="button">All Singapore</button><button id="mapZoom" class="secondary" type="button">Zoom to area</button></div>
+        </div>
+        <div id="mapLegend" class="map-legend"></div>
+        <small>Thick outlines: pilot areas. Dots: reviewed WBGT stations. Heat colour is a station proxy, not a measured surface across each area.</small>
+      </div>
+      <aside id="areaDetail" class="area-detail" aria-live="polite"></aside>
+    </div>
+    <div class="map-provenance"><p id="mapProvenance"></p><small>Census figures are from 2020, not today's population. Missing counts remain unavailable. Mapping review covers source IDs, geometry and joins; partner and field validation remain pending.</small></div>
+  </section>
   <div class="layout">
     <aside class="panel"><h2>Available capacity</h2>
       <label for="budget">Additional team slots</label><input id="budget" type="number" min="0" max="50" value="2">
@@ -55,6 +76,7 @@
   <footer>Prototype for DAISI B1 HeatGuard. Area priorities are planning proxies. They do not identify individual illness risk or measure completed outreach.
     <br><a href="https://www.weather.gov.sg/heat-stress/" target="_blank" rel="noreferrer">Official heat-stress guidance</a></footer>
 </main>
+<script src="/map.js"></script>
 <script>
   const el=id=>document.getElementById(id);
   const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -73,6 +95,7 @@
       const res=await fetch('/api/plan?'+p);const data=await res.json();if(request!==sequence)return;
       if(!res.ok)throw new Error(data.error||'Could not load the plan');
       const synthetic=data.data_mode==='synthetic';
+      window.heatMap.update(data);
       el('notice').textContent=synthetic?'SYNTHETIC DEMO — all area names, populations and readings are fictional. Fixed replay time: '+time(data.as_of):'OBSERVED DATA — forecasts use a persistence baseline. Check observation age and review area mappings before using a plan.';
       el('status').textContent='';
       if(initial){
@@ -91,6 +114,7 @@
     }catch(error){
       if(request!==sequence)return;
       el('status').textContent=error.message;el('planRows').innerHTML='';el('metrics').innerHTML='';
+      window.heatMap.invalidate();
       el('explanations').innerHTML='';el('empty').textContent='Correct the settings to generate a valid plan.';
     }
   }

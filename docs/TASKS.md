@@ -4,16 +4,17 @@
 
 - [x] Verify Windows virtual environment, synthetic demo, local HTTP server and all 16 regression tests (Python 3.13.7; use `python` because the `py` launcher fails).
 - [x] Save the project owner's original creation-chat link in README and NEXT_SESSION.
-- [ ] Open http://127.0.0.1:8000 in a browser and inspect rendering and controls; headless Chrome could not complete in the restricted environment.
+- [x] Verify the observed pilot's browser rendering and controls on desktop and mobile using a separate headless Chrome profile outside the sandbox.
 - [x] Run `ingest --source all` from Glen's machine. Verified 30 WBGT and 89 rainfall rows, zero quarantined; observation timestamps recorded in STATUS.md.
 - [x] Create the private `glentls/heataction-sg` repository and verify the initial upload; local `main` tracks `origin/main`.
 - [ ] Test one historical date for both feeds. Inspect actual returned timestamps and pagination before backfilling.
-- [ ] Download the Census age table and URA polygons. Implement and check demographic parsing.
-- [ ] Select pilot areas and review area-to-station mappings. Keep data vintage visible.
+- [x] Download Census 2020 age data and compatible URA MP2019 polygons; verify joins, missing counts and source checksums.
+- [x] Select Ang Mo Kio, Bedok and Jurong West and document technical station/geometry reviews with visible vintage and limitations.
+- [ ] Validate station representativeness and service boundaries with a prospective coordinator; technical containment is not field validation.
 
 ## Next implementation milestone
 
-- [ ] Add actual planning-area map and geographic coverage indicators.
+- [x] Add all 55 planning-area polygons, demographic/heat layers, three pilot station markers, coverage status and source detail panels.
 - [ ] Add a nearest valid rainfall-station mapping and issue-time-safe rainfall features.
 - [ ] Run chronological evaluation on observed WBGT and record real results.
 - [ ] Add an evaluated forecast artifact and inference path to the app, preserving baseline comparison.

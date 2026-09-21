@@ -1,5 +1,13 @@
 # Changelog
 
+## Real-area map pilot - 21 September 2026
+
+- Integrated attributed Census 2020 and URA MP2019 snapshots with checksum validation and strict planning-area joins.
+- Added the Ang Mo Kio, Bedok and Jurong West pilot, documented station proxy reviews, containment validation and moved-station protection.
+- Added an interactive map of all 55 planning areas, demographic/heat layers, age profiles, station locations, source details, coverage status and area selection controls.
+- Added `check-areas` and observed `--pilot` startup, expanded CSV provenance, and preserved synthetic mode isolation.
+- Passed 25 regression tests and real-browser desktop/mobile checks; fixed narrow-screen table overflow.
+
 ## GitHub connection - 21 September 2026
 
 - Created the private `glentls/heataction-sg` GitHub repository, pushed the initial source commit, connected local `main` to `origin/main`, and added instructions for saving future changes.
