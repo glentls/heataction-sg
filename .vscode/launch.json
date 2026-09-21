@@ -1,0 +1,8 @@
+{
+  "version": "0.2.0",
+  "configurations": [{
+    "name": "HeatAction local demo", "type": "debugpy", "request": "launch",
+    "module": "heataction", "args": ["serve", "--mode", "demo"],
+    "cwd": "${workspaceFolder}", "console": "integratedTerminal"
+  }]
+}

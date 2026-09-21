@@ -1,0 +1,8 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {"label":"HeatAction: prepare demo","type":"process","command":"${command:python.interpreterPath}","args":["-m","heataction","demo"],"problemMatcher":[]},
+    {"label":"HeatAction: test","type":"process","command":"${command:python.interpreterPath}","args":["-m","unittest","discover","-s","tests","-v"],"group":{"kind":"test","isDefault":true},"problemMatcher":[]},
+    {"label":"HeatAction: collect observations","type":"process","command":"${command:python.interpreterPath}","args":["-m","heataction","ingest","--source","all"],"problemMatcher":[]}
+  ]
+}
