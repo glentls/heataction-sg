@@ -16,6 +16,8 @@ def connect(root: Path):
         PRIMARY KEY(source, station_id, observed_at))""")
     connection.execute("""CREATE TABLE IF NOT EXISTS runs (
         run_at TEXT, source TEXT, status TEXT, accepted INTEGER, rejected INTEGER, detail TEXT)""")
+    connection.execute("""CREATE TABLE IF NOT EXISTS lock_reasons (
+        area_id TEXT PRIMARY KEY, reason TEXT NOT NULL, recorded_at TEXT NOT NULL)""")
     connection.commit()
     return connection
 
@@ -59,5 +61,34 @@ def recent_runs(root):
     db = connect(root)
     try:
         return [dict(row) for row in db.execute("SELECT * FROM runs ORDER BY rowid DESC LIMIT 10")]
+    finally:
+        db.close()
+
+
+def save_lock_reason(root, area_id, reason):
+    db = connect(root)
+    try:
+        with db:
+            db.execute("""INSERT INTO lock_reasons VALUES (?, ?, ?)
+                ON CONFLICT(area_id) DO UPDATE SET reason=excluded.reason, recorded_at=excluded.recorded_at""",
+                (area_id, reason, now_utc()))
+    finally:
+        db.close()
+
+
+def delete_lock_reason(root, area_id):
+    db = connect(root)
+    try:
+        with db:
+            db.execute("DELETE FROM lock_reasons WHERE area_id = ?", (area_id,))
+    finally:
+        db.close()
+
+
+def lock_reasons(root):
+    db = connect(root)
+    try:
+        return {row["area_id"]: {"reason": row["reason"], "recorded_at": row["recorded_at"]}
+                for row in db.execute("SELECT * FROM lock_reasons ORDER BY area_id")}
     finally:
         db.close()

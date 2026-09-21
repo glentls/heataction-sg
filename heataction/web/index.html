@@ -19,7 +19,15 @@
     .tag{padding:3px 8px;border-radius:4px;font-weight:600;background:#edf0f1}.high{color:#a63020;background:#ffe8df}.moderate{color:#846003;background:#fff3cd}.low{color:#246344;background:#e4f5e9}.unknown{color:#555;background:#eee}
     .assigned{background:#f0faf5}.actions{display:flex;gap:10px;align-items:center;justify-content:space-between;margin-bottom:12px}.section{margin-top:24px}details{margin-top:14px;padding:14px;background:#f5f8f7;border:1px solid var(--border);border-radius:7px}summary{cursor:pointer;font-weight:600}
     .explain{font-size:14px}footer{font-size:13px;color:var(--muted);margin-top:28px}a{color:var(--teal)}#status{min-height:24px}.empty{padding:20px;background:#f7f9f8}
-    @media(max-width:850px){.layout{grid-template-columns:1fr}header{padding:24px}main{padding:16px}.panel{padding:17px}.actions{align-items:flex-start}}
+    .lock-btn{padding:6px 10px;font-size:13px}.reason-text{display:block;font-size:12px;color:var(--muted);max-width:220px;white-space:normal}
+    .lock-panel{margin-top:16px;padding:16px;background:#f5f8f7;border:1px solid var(--border);border-radius:9px}
+    .lock-panel label{margin-top:0}.lock-panel-actions{display:flex;gap:10px;margin-top:12px;flex-wrap:wrap}
+    .char-count{float:right;font-weight:400;color:var(--muted)}.error-text{color:#a63020;font-size:13px;margin-top:8px}
+    .scenario-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:18px}
+    .scenario-card{padding:14px;background:#f5f8f7;border:1px solid var(--border);border-radius:9px}
+    .scenario-card h3{display:flex;justify-content:space-between;align-items:center}
+    .diff-gain{color:#246344;font-weight:600}.diff-loss{color:#a63020;font-weight:600}.diff-none{color:var(--muted)}
+    @media(max-width:850px){.layout{grid-template-columns:1fr}header{padding:24px}main{padding:16px}.panel{padding:17px}.actions{align-items:flex-start}.scenario-grid{grid-template-columns:1fr}}
   </style>
 </head>
 <body>
@@ -62,11 +70,32 @@
         <div class="actions"><h2>Suggested outreach plan</h2><a id="export" class="button" href="/api/export">Export CSV</a></div>
         <div id="status" aria-live="polite"></div>
         <div class="metrics" id="metrics"></div>
-        <div class="table-wrap"><table><thead><tr><th>Area</th><th>WBGT forecast</th><th>Heat category</th><th>Priority</th><th>Plan</th></tr></thead><tbody id="planRows"></tbody></table></div>
+        <div class="table-wrap"><table><thead><tr><th>Area</th><th>WBGT forecast</th><th>Heat category</th><th>Priority</th><th>Plan</th><th>Lock</th></tr></thead><tbody id="planRows"></tbody></table></div>
         <div id="empty"></div>
+        <div id="lockPanel" class="lock-panel" hidden></div>
         <small style="margin-top:14px">One-hour persistence baseline: the latest WBGT is carried forward. This has not been validated as a useful forecast.</small>
         <details><summary>Why these recommendations?</summary><div id="explanations" class="explain"></div></details>
       </div>
+      <section class="panel section"><h2>Compare scenarios</h2>
+        <p class="muted">Compare two team-budget policies side by side, for example two teams versus three. Both scenarios use the same service-area selection and locked assignments shown above.</p>
+        <div class="scenario-grid">
+          <div class="scenario-card"><h3>Scenario A</h3>
+            <label for="cmpABudget">Team slots</label><input id="cmpABudget" type="number" min="0" max="50" value="2">
+            <label for="cmpAContacts">Contacts per slot</label><input id="cmpAContacts" type="number" min="1" max="1000" value="10">
+            <label for="cmpAWeight">Weight on senior count <span id="cmpAWeightValue">50%</span></label>
+            <input id="cmpAWeight" type="range" min="0" max="100" value="50">
+          </div>
+          <div class="scenario-card"><h3>Scenario B</h3>
+            <label for="cmpBBudget">Team slots</label><input id="cmpBBudget" type="number" min="0" max="50" value="3">
+            <label for="cmpBContacts">Contacts per slot</label><input id="cmpBContacts" type="number" min="1" max="1000" value="10">
+            <label for="cmpBWeight">Weight on senior count <span id="cmpBWeightValue">50%</span></label>
+            <input id="cmpBWeight" type="range" min="0" max="100" value="50">
+          </div>
+        </div>
+        <button id="compareBtn" type="button">Compare scenarios</button>
+        <div id="compareStatus" aria-live="polite"></div>
+        <div id="compareResult"></div>
+      </section>
       <section class="panel section"><h2>Source observations</h2><p class="muted" id="asof"></p>
         <div class="table-wrap"><table><thead><tr><th>Source</th><th>Station</th><th>Value</th><th>Observed at</th></tr></thead><tbody id="sourceRows"></tbody></table></div>
         <details><summary>Recent collection runs</summary><pre id="runs" style="white-space:pre-wrap"></pre></details>
@@ -80,10 +109,14 @@
 <script>
   const el=id=>document.getElementById(id);
   const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  let initial=true, sequence=0;
+  let initial=true, sequence=0, lastPlan=null, lockPanelArea=null;
+  const lockedAreas=new Set();
   function params(){
     const p=new URLSearchParams({budget:el('budget').value,contacts:el('contacts').value,weight:Number(el('weight').value)/100});
-    if(!initial)p.set('areas',[...document.querySelectorAll('#areas input:checked')].map(x=>x.value).join(','));
+    if(!initial){
+      p.set('areas',[...document.querySelectorAll('#areas input:checked')].map(x=>x.value).join(','));
+      p.set('locked',[...lockedAreas].join(','));
+    }
     return p;
   }
   function time(s){return s?new Date(s).toLocaleString('en-SG',{timeZone:'Asia/Singapore',hour12:false})+' SGT':'Unavailable'}
@@ -98,14 +131,16 @@
       window.heatMap.update(data);
       el('notice').textContent=synthetic?'SYNTHETIC DEMO — all area names, populations and readings are fictional. Fixed replay time: '+time(data.as_of):'OBSERVED DATA — forecasts use a persistence baseline. Check observation age and review area mappings before using a plan.';
       el('status').textContent='';
+      lastPlan=data;
+      lockedAreas.clear();data.rows.filter(r=>r.locked).forEach(r=>lockedAreas.add(r.area_id));
       if(initial){
         el('areas').innerHTML=data.rows.length?data.rows.map(r=>`<label class="area"><input type="checkbox" value="${esc(r.area_id)}" checked> ${esc(r.name)}</label>`).join(''):'<small>No reviewed area file loaded.</small>';
-        document.querySelectorAll('#areas input').forEach(x=>x.addEventListener('change',load));initial=false;
+        document.querySelectorAll('#areas input').forEach(x=>x.addEventListener('change',()=>{if(!x.checked)lockedAreas.delete(x.value);load();}));initial=false;
       }
       el('metrics').innerHTML=`<div class="metric"><strong>${data.assigned_slots} / ${data.budget}</strong><span>Team slots assigned</span></div><div class="metric"><strong>${data.planned_contact_capacity}</strong><span>Assumed contact capacity</span></div><div class="metric"><strong>${data.rows.filter(r=>r.status!=='Ready').length}</strong><span>Areas needing data review</span></div>`;
-      el('planRows').innerHTML=data.rows.filter(r=>r.eligible).map(r=>`<tr class="${r.assigned?'assigned':''}"><td><strong>${esc(r.name)}</strong><small>${esc(r.status)}</small></td><td>${r.forecast_wbgt===null?'Unavailable':r.forecast_wbgt.toFixed(1)+' °C'}</td><td><span class="tag ${r.category.toLowerCase()}">${esc(r.category)}</span></td><td>${r.priority===null?'—':r.priority.toFixed(2)}</td><td>${r.assigned?'1 slot · '+r.contact_capacity+' assumed contacts':'No extra slot'}</td></tr>`).join('');
+      el('planRows').innerHTML=data.rows.filter(r=>r.eligible).map(r=>`<tr class="${r.assigned?'assigned':''}"><td><strong>${esc(r.name)}</strong><small>${esc(r.status)}</small></td><td>${r.forecast_wbgt===null?'Unavailable':r.forecast_wbgt.toFixed(1)+' °C'}</td><td><span class="tag ${r.category.toLowerCase()}">${esc(r.category)}</span></td><td>${r.priority===null?'—':r.priority.toFixed(2)}</td><td>${r.assigned?'1 slot · '+r.contact_capacity+' assumed contacts':'No extra slot'}</td><td>${lockCell(r)}</td></tr>`).join('');
       el('empty').innerHTML=!data.has_areas?'<p class="empty">The source inspector is ready. Add a reviewed population and station mapping file to enable area planning. See docs/DATA.md.</p>':data.assigned_slots===0?'<p class="empty">No additional heat-driven slots assigned under these settings. Missing or stale data remains unresolved.</p>':'';
-      el('explanations').innerHTML='<p>Priority = heat weight × weighted demographic percentiles. Heat weights are 0 / 1 / 2 for low / moderate / high. Rankings use the full configured reference cohort, even when service areas are filtered.</p>'+data.rows.filter(r=>r.eligible).map(r=>`<p><strong>${esc(r.name)}</strong>: ${r.seniors65.toLocaleString()} residents aged 65+, ${(r.senior_share*100).toFixed(1)}% of residents. Population reference year ${r.population_year}. Source: ${esc(r.population_source)}. Weather mapping: ${esc(r.mapping_method)} to ${esc(r.station_id)}. Latest reading: ${time(r.observed_at)}. Contact capacity is an assumption.</p>`).join('');
+      el('explanations').innerHTML='<p>Priority = heat weight × weighted demographic percentiles. Heat weights are 0 / 1 / 2 for low / moderate / high. Rankings use the full configured reference cohort, even when service areas are filtered.</p>'+data.rows.filter(r=>r.eligible).map(r=>`<p><strong>${esc(r.name)}</strong>: ${r.seniors65.toLocaleString()} residents aged 65+, ${(r.senior_share*100).toFixed(1)}% of residents. Population reference year ${r.population_year}. Source: ${esc(r.population_source)}. Weather mapping: ${esc(r.mapping_method)} to ${esc(r.station_id)}. Latest reading: ${time(r.observed_at)}. Contact capacity is an assumption.${r.locked?` Locked: ${esc(r.lock_reason)}.`:''}</p>`).join('');
       el('asof').textContent='Plan issue time: '+time(data.as_of)+'. Forecast target: one hour later. Rainfall is displayed but is not yet a forecast feature.';
       el('sourceRows').innerHTML=data.latest_observations.map(r=>`<tr><td>${esc(r.source)}</td><td>${esc(r.station_name)}<small>${esc(r.station_id)}</small></td><td>${r.value.toFixed(1)} ${esc(r.unit)}</td><td>${time(r.observed_at)}</td></tr>`).join('');
       el('runs').textContent=data.recent_runs.length?JSON.stringify(data.recent_runs,null,2):'No collection runs. Synthetic demonstration data is generated locally.';
@@ -114,10 +149,104 @@
     }catch(error){
       if(request!==sequence)return;
       el('status').textContent=error.message;el('planRows').innerHTML='';el('metrics').innerHTML='';
-      window.heatMap.invalidate();
-      el('explanations').innerHTML='';el('empty').textContent='Correct the settings to generate a valid plan.';
+      window.heatMap.invalidate();closeLockPanel();
+      el('explanations').innerHTML='';
+      el('empty').innerHTML=lockedAreas.size?'<p class="empty">Correct the settings to generate a valid plan, or <button type="button" id="clearLocksBtn" class="secondary">clear all locks</button> if a locked area is no longer eligible.</p>':'<p class="empty">Correct the settings to generate a valid plan.</p>';
+      el('clearLocksBtn')?.addEventListener('click',()=>{lockedAreas.clear();load();});
     }
   }
+  function lockCell(r){
+    if(r.locked)return `<button type="button" class="secondary lock-btn" data-action="lock" data-area="${esc(r.area_id)}">🔒 Locked</button>`;
+    if(r.status==='Ready'&&r.allocation_value>0)return `<button type="button" class="secondary lock-btn" data-action="lock" data-area="${esc(r.area_id)}">Lock</button>`;
+    return '<span class="muted">—</span>';
+  }
+  function closeLockPanel(){el('lockPanel').hidden=true;el('lockPanel').innerHTML='';}
+  function openLockPanel(areaId){
+    const row=lastPlan?.rows.find(r=>r.area_id===areaId);
+    if(!row)return;
+    const locked=row.locked, reason=row.lock_reason||'';
+    el('lockPanel').hidden=false;
+    el('lockPanel').innerHTML=`<strong>${locked?'Edit lock':'Lock a team slot'} — ${esc(row.name)}</strong>
+      <label for="lockReasonInput">Reason for this lock <span class="char-count"><span id="lockReasonCount">${reason.length}</span>/300</span></label>
+      <input id="lockReasonInput" type="text" maxlength="300" value="${esc(reason)}" placeholder="e.g. Clinic visit already scheduled">
+      <small>Saved locally in the app's data folder and included in the CSV export.</small>
+      <div class="lock-panel-actions">
+        <button type="button" id="lockSaveBtn">Save lock</button>
+        ${locked?'<button type="button" id="lockUnlockBtn" class="secondary">Unlock (keep reason)</button><button type="button" id="lockForgetBtn" class="secondary">Unlock and delete reason</button>':''}
+        <button type="button" id="lockCancelBtn" class="secondary">Cancel</button>
+      </div>
+      <div id="lockError" class="error-text"></div>`;
+    const input=el('lockReasonInput');
+    input.addEventListener('input',()=>el('lockReasonCount').textContent=input.value.length);
+    input.focus();
+    el('lockSaveBtn').addEventListener('click',async()=>{
+      const reasonValue=input.value.trim();
+      if(!reasonValue){el('lockError').textContent='Enter a reason to save this lock.';return;}
+      el('lockSaveBtn').disabled=true;
+      try{
+        const res=await fetch('/api/locks',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({area_id:areaId,reason:reasonValue})});
+        const result=await res.json();
+        if(!res.ok)throw new Error(result.error||'Could not save the lock reason');
+        lockedAreas.add(areaId);closeLockPanel();load();
+      }catch(error){el('lockError').textContent=error.message;el('lockSaveBtn').disabled=false;}
+    });
+    el('lockCancelBtn').addEventListener('click',closeLockPanel);
+    el('lockUnlockBtn')?.addEventListener('click',()=>{lockedAreas.delete(areaId);closeLockPanel();load();});
+    el('lockForgetBtn')?.addEventListener('click',async()=>{
+      try{
+        const res=await fetch('/api/locks?area_id='+encodeURIComponent(areaId),{method:'DELETE'});
+        const result=await res.json();
+        if(!res.ok)throw new Error(result.error||'Could not delete the saved reason');
+        lockedAreas.delete(areaId);closeLockPanel();load();
+      }catch(error){el('lockError').textContent=error.message;}
+    });
+  }
+  el('planRows').addEventListener('click',event=>{
+    const btn=event.target.closest('[data-action=lock]');
+    if(btn)openLockPanel(btn.dataset.area);
+  });
+  function scenarioParams(prefix){
+    const p=params();
+    p.set('budget',el(prefix+'Budget').value);
+    p.set('contacts',el(prefix+'Contacts').value);
+    p.set('weight',Number(el(prefix+'Weight').value)/100);
+    return p;
+  }
+  function compareRow(c){
+    const cls=c.change==='gain'?'diff-gain':c.change==='loss'?'diff-loss':'diff-none';
+    const label=c.change==='gain'?'Gains a slot in B':c.change==='loss'?'Loses a slot in B':'No change';
+    return `<tr><td>${esc(c.name)}</td><td>${c.ra.assigned?'Assigned':'—'}</td><td>${c.rb.assigned?'Assigned':'—'}</td><td class="${cls}">${label}</td></tr>`;
+  }
+  function renderCompare(a,b){
+    const byA=new Map(a.rows.filter(r=>r.eligible).map(r=>[r.area_id,r]));
+    const byB=new Map(b.rows.filter(r=>r.eligible).map(r=>[r.area_id,r]));
+    const ids=[...new Set([...byA.keys(),...byB.keys()])];
+    const changes=ids.map(id=>{
+      const ra=byA.get(id),rb=byB.get(id);
+      const change=ra.assigned===rb.assigned?'none':(ra.assigned&&!rb.assigned?'loss':'gain');
+      return {id,name:ra.name,change,ra,rb};
+    });
+    const gains=changes.filter(c=>c.change==='gain'),losses=changes.filter(c=>c.change==='loss'),same=changes.filter(c=>c.change==='none');
+    el('compareResult').innerHTML=`
+      <div class="metrics"><div class="metric"><strong>${a.assigned_slots} → ${b.assigned_slots}</strong><span>Slots assigned, A → B</span></div><div class="metric"><strong>${a.planned_contact_capacity} → ${b.planned_contact_capacity}</strong><span>Assumed contact capacity, A → B</span></div></div>
+      <div class="table-wrap"><table><thead><tr><th>Area</th><th>Scenario A</th><th>Scenario B</th><th>Change</th></tr></thead><tbody>${[...gains,...losses].map(compareRow).join('')||'<tr><td colspan="4">No assignment changes between scenarios.</td></tr>'}</tbody></table></div>
+      ${same.length?`<details><summary>${same.length} unchanged area(s)</summary><div class="table-wrap"><table><tbody>${same.map(compareRow).join('')}</tbody></table></div></details>`:''}
+      <small>Comparison uses the current service-area selection and locked assignments; it does not predict real outcomes.</small>`;
+  }
+  async function runCompare(){
+    if(initial){el('compareStatus').textContent='Wait for the plan to finish loading first.';return;}
+    el('compareStatus').textContent='Comparing…';el('compareResult').innerHTML='';
+    try{
+      const [resA,resB]=await Promise.all([fetch('/api/plan?'+scenarioParams('cmpA')),fetch('/api/plan?'+scenarioParams('cmpB'))]);
+      const [dataA,dataB]=await Promise.all([resA.json(),resB.json()]);
+      if(!resA.ok)throw new Error('Scenario A: '+(dataA.error||'could not load'));
+      if(!resB.ok)throw new Error('Scenario B: '+(dataB.error||'could not load'));
+      renderCompare(dataA,dataB);
+      el('compareStatus').textContent='';
+    }catch(error){el('compareStatus').textContent=error.message;el('compareResult').innerHTML='';}
+  }
+  ['cmpAWeight','cmpBWeight'].forEach(id=>el(id).addEventListener('input',()=>el(id+'Value').textContent=el(id).value+'%'));
+  el('compareBtn').addEventListener('click',runCompare);
   ['budget','contacts','weight'].forEach(id=>el(id).addEventListener('change',load));el('refresh').addEventListener('click',load);load();
 </script>
 </body></html>
