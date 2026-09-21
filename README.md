@@ -2,6 +2,8 @@
 
 A working first iteration for DAISI B1 HeatGuard. It includes a local planning app, public weather collectors, an exploratory forecast experiment, Databricks source notebooks and project documentation.
 
+**Private repository:** [glentls/heataction-sg](https://github.com/glentls/heataction-sg). See `docs/GITHUB.md` for saving future changes.
+
 **Start here:** run the synthetic demo, understand the planning flow, then verify live collection on your computer. All demo names, counts and readings are fictional. This is not the final competition submission.
 
 **Project origin:** [Original HeatAction creation chat](https://chatgpt.com/share/e/6ab0d893-c718-83ec-bae1-df575a54ab4b) (provided by the project owner; its contents were not accessible during local verification). See `docs/NEXT_SESSION.md` for the saved continuation context.

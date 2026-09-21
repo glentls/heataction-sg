@@ -1,8 +1,8 @@
 # Changelog
 
-## GitHub preparation - 21 September 2026
+## GitHub connection - 21 September 2026
 
-- Prepared source control for a private GitHub repository and added instructions for saving future changes.
+- Created the private `glentls/heataction-sg` GitHub repository, pushed the initial source commit, connected local `main` to `origin/main`, and added instructions for saving future changes.
 - Extended environment-file exclusions; runtime observations, demo data, artifacts and the virtual environment remain local.
 - Verified successful live WBGT/rainfall collection in the local cache and recorded counts and timestamps in STATUS.md.
 

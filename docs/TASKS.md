@@ -6,7 +6,7 @@
 - [x] Save the project owner's original creation-chat link in README and NEXT_SESSION.
 - [ ] Open http://127.0.0.1:8000 in a browser and inspect rendering and controls; headless Chrome could not complete in the restricted environment.
 - [x] Run `ingest --source all` from Glen's machine. Verified 30 WBGT and 89 rainfall rows, zero quarantined; observation timestamps recorded in STATUS.md.
-- [ ] Create the private `glentls/heataction-sg` repository and verify the initial upload.
+- [x] Create the private `glentls/heataction-sg` repository and verify the initial upload; local `main` tracks `origin/main`.
 - [ ] Test one historical date for both feeds. Inspect actual returned timestamps and pagination before backfilling.
 - [ ] Download the Census age table and URA polygons. Implement and check demographic parsing.
 - [ ] Select pilot areas and review area-to-station mappings. Keep data vintage visible.

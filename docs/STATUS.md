@@ -53,9 +53,10 @@ The local first iteration is implemented. It demonstrates the planning flow with
 
 Continue with Census/URA ingestion and reviewed geographic mappings. Historical weather access and manual browser inspection also remain pending.
 
-## Live collection and GitHub preparation, 21 September 2026
+## Live collection and GitHub connection, 21 September 2026
 
 - Verified the observed SQLite cache after the owner's successful collection: WBGT has 30 rows, latest observation `2026-09-21T07:00:00+00:00` (15:00 SGT); rainfall has 89 rows, latest observation `2026-09-21T07:15:00+00:00` (15:15 SGT).
 - Both collection runs completed at `2026-09-21T07:23:23+00:00`, with status `ok` and zero quarantined records. These confirm source access, not forecast accuracy.
 - The owner requested a private GitHub repository. Authenticated account verified as `glentls`; target repository is `glentls/heataction-sg`.
-- Repository preparation is in progress. Runtime data, virtual environments, artifacts and environment files are excluded. GitHub upload is not yet verified.
+- Created [glentls/heataction-sg](https://github.com/glentls/heataction-sg) and verified that GitHub reports it as private. Initial commit `20864fc` uploaded successfully; local `main` tracks `origin/main`.
+- Reviewed all 30 staged files and checked for common credential formats, with no matches. Runtime data, virtual environments, artifacts and environment files are excluded. No application code changed during GitHub setup; the previously passing 16 regression tests remain the latest test run.
