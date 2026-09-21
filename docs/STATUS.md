@@ -4,7 +4,7 @@ Version 0.1.0. Updated 21 September 2026.
 
 ## Current milestone
 
-The local app now includes an observed three-area planning pilot with Census 2020 age profiles, matched URA 2019 boundaries and an interactive Singapore map. Live WBGT/rainfall collection succeeds on Glen's machine. Technical station mapping checks are implemented; partner/field validation and Databricks execution remain pending. The next feature milestone is saved scenario comparison and coordinator assignment controls.
+The local app now includes an observed three-area planning pilot with Census 2020 age profiles, matched URA 2019 boundaries and an interactive Singapore map, plus coordinator lock controls with recorded reasons and a side-by-side scenario comparison view. Live WBGT/rainfall collection succeeds on Glen's machine. Technical station mapping checks are implemented; partner/field validation and Databricks execution remain pending. The next feature milestone is real chronological WBGT evaluation and a deployed forecast artifact.
 
 ## Implemented
 
@@ -14,7 +14,8 @@ The local app now includes an observed three-area planning pilot with Census 202
 - Idempotent SQLite upserts for local development, with source-correction handling.
 - Persistence forecasts and transparent demographic priority policy.
 - Freshness gate, missing-data status, fixed reference cohort and budget-constrained allocation.
-- Core/API support for locked assignments. The first UI does not expose lock controls.
+- Coordinator lock controls with a required, server-persisted reason per locked area, shown in the plan, explanations and CSV export.
+- A side-by-side scenario comparison view (for example two versus three team slots) showing which areas gain or lose an assignment.
 - Optional baseline and gradient-boosting experiment with exact next-hour labels, chronological splits and station metrics.
 - Databricks source notebooks for Delta ingestion and MLflow evaluation.
 - VS Code tasks, debug configuration, tests and documentation.
@@ -53,7 +54,7 @@ The local app now includes an observed three-area planning pilot with Census 202
 
 ## Next task
 
-Add saved scenario comparison and expose assignment locks with reason logging. Continue collecting observed weather history; historical API access, field validation and Databricks deployment remain separate pending tasks.
+Run chronological evaluation on observed WBGT and add an evaluated forecast artifact/inference path, preserving the persistence baseline comparison. Continue collecting observed weather history; historical API access, field validation and Databricks deployment remain separate pending tasks.
 
 ## Real-area map milestone, 21 September 2026
 
@@ -66,6 +67,17 @@ Add saved scenario comparison and expose assignment locks with reason logging. C
 - Chrome checks passed for map loading, population counts, selection, keyboard interaction, zoom/reset, heat layer, service-area toggles and clearing/recovering from a failed plan request. Desktop and 390-pixel mobile screenshots were inspected; mobile table overflow was corrected. Evidence is local in ignored `artifacts/pilot-desktop.png` and `artifacts/pilot-mobile.png`.
 - Refreshed both live feeds successfully (30 WBGT / 89 rainfall rows processed, zero quarantined). At the browser check around 15:58 SGT all three pilot stations were fresh and Low; zero extra heat-driven slots was correct. These readings are time-specific, not a continuing freshness guarantee.
 - Left the pilot server running at http://127.0.0.1:8001, with local logs under `data/runtime/observed/pilot-server.*.log`. Databricks notebooks were not executed and no cloud resources were created.
+
+## Lock controls and scenario comparison, 21 September 2026
+
+- Added a `lock_reasons` SQLite table (`heataction/storage.py`) and an `/api/locks` endpoint (`GET`/`POST`/`DELETE` in `heataction/server.py`) so a coordinator's reason for pinning an area to a team slot is saved locally, keyed by area, and survives a server restart.
+- `/api/plan` and `/api/export` now reject a `locked` area that has no saved reason (400, explicit message), and attach each area's saved reason and record time to every plan row and CSV export.
+- Added a Lock/Unlock control to each eligible area row in `heataction/web/index.html`: locking requires typing a nonempty reason (client- and server-validated, 300-character limit); unlocking keeps the saved reason for reuse, with a separate "delete reason" action. A locked area's reason also appears in the recommendation explanations.
+- Added a "Compare scenarios" panel: two independent budget/contacts/weight settings (for example two versus three team slots) sharing the same service-area selection and locks, fetched via two parallel `/api/plan` calls and rendered as a gained/lost/unchanged diff with slot and contact-capacity totals. No new backend endpoint was needed for this.
+- If a previously locked area becomes invalid (for example its data goes stale after a refresh), the app fails closed with a clear error and a "clear all locks" recovery control, rather than silently dropping the lock.
+- Added 1 storage unit test and 1 subprocess HTTP integration test (spawns `serve --mode demo` and exercises `/api/locks` plus the plan/export validation and data). All 27 regression tests pass locally (Python 3.13.7). JavaScript syntax passed via `node --check`.
+- Verified interactively with real headless Chrome (`artifacts/check-locks-browser.mjs`, not committed): lock validation, save/reason round-trip and pre-fill on reopen, unlock, explanation text, and the two-scenario diff, all with zero JavaScript exceptions; 390px width produced no horizontal overflow. Evidence is local only, matching the project's prior browser-check pattern.
+- Not yet done: only the latest reason per area is kept (no history/audit trail across relocks), and no field/coordinator usability testing of the new controls.
 
 ## Live collection and GitHub connection, 21 September 2026
 

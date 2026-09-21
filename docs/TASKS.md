@@ -18,8 +18,9 @@
 - [ ] Add a nearest valid rainfall-station mapping and issue-time-safe rainfall features.
 - [ ] Run chronological evaluation on observed WBGT and record real results.
 - [ ] Add an evaluated forecast artifact and inference path to the app, preserving baseline comparison.
-- [ ] Add UI controls and reason logging for locked assignments (core/API support exists).
-- [ ] Compare planning policies under identical budget and capacity assumptions.
+- [x] Add UI controls and reason logging for locked assignments (core/API support exists).
+- [x] Add an interactive side-by-side scenario comparison (for example two versus three team slots).
+- [ ] Compare planning policies under identical budget and capacity assumptions (baseline vs. trained model, once real chronological evaluation exists).
 - [ ] Run the Databricks notebooks in the final workspace.
 - [ ] Add Gold demographic/priority tables and Databricks-hosted interface.
 

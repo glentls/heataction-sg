@@ -56,6 +56,8 @@ python3 -m venv .venv
 - Adjust the relative weight on senior count versus senior share.
 - Open the recommendation explanation and export a CSV.
 - Set the team budget to zero. The app should allocate zero slots.
+- Click **Lock** on an eligible area, save a reason, and see it hold its slot even at a lower budget. Unlocking keeps the saved reason for reuse; a separate action deletes it.
+- Use **Compare scenarios** to set Scenario A to 2 team slots and Scenario B to 3, then compare which areas gain or lose an assignment.
 
 The app currently forecasts by carrying the latest WBGT forward for one hour. It labels this **persistence baseline**, not trained AI. The independent ML experiment is not yet used for app inference.
 

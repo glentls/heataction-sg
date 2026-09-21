@@ -18,7 +18,7 @@ Open http://127.0.0.1:8000. The demo generated 4,033 synthetic observations; all
 
 ## Continuation prompt
 
-The real-area map milestone is now implemented. Start the observed pilot with `.\.venv\Scripts\python.exe -m heataction serve --mode observed --pilot --port 8001`; see STATUS.md and DATA.md for the verified Census/URA joins and technical station review. All 25 regression tests and desktop/mobile pilot browser checks pass. The next feature milestone is saved scenario comparison and assignment controls. The older handoff prompt below describes the original project starting point, not the latest state.
+The real-area map, coordinator lock controls (with required saved reasons) and side-by-side scenario comparison are now implemented. Start the observed pilot with `.\.venv\Scripts\python.exe -m heataction serve --mode observed --pilot --port 8001`; see STATUS.md and DATA.md for the verified Census/URA joins and technical station review. All 27 regression tests and desktop/mobile browser checks pass. The next feature milestone is real chronological evaluation on observed WBGT and a deployed forecast artifact/inference path. The older handoff prompt below describes the original project starting point, not the latest state.
 
 Open the project folder containing README.md. Use this message to give a coding assistant the context:
 

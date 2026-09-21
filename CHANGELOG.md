@@ -1,5 +1,13 @@
 # Changelog
 
+## Lock controls and scenario comparison - 21 September 2026
+
+- Added coordinator lock/unlock controls per area, requiring a saved, nonempty reason; reasons persist server-side in SQLite and appear in the plan, recommendation explanations and CSV export.
+- Added an `/api/locks` endpoint (`GET`/`POST`/`DELETE`) and rejected `locked` plan/export requests for areas without a saved reason.
+- Added a side-by-side scenario comparison view (for example two versus three team slots) showing which areas gain or lose an assignment, with slot and contact-capacity totals.
+- Added a "clear all locks" recovery control for when a locked area becomes ineligible between refreshes.
+- Passed 27 regression tests (25 existing, 1 new storage test, 1 new HTTP integration test) and real-headless-Chrome interaction checks with no JavaScript exceptions or mobile overflow.
+
 ## Real-area map pilot - 21 September 2026
 
 - Integrated attributed Census 2020 and URA MP2019 snapshots with checksum validation and strict planning-area joins.
