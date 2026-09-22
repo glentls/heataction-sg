@@ -1,9 +1,5 @@
 # Continue this project in VS Code
 
-## Original creation conversation
-
-[Original HeatAction creation chat](https://chatgpt.com/share/e/6ab0d893-c718-83ec-bae1-df575a54ab4b), supplied by the project owner on 21 September 2026. The link could not be retrieved during local verification; no claims about its contents have been verified. The repository's status and decisions remain the working implementation record.
-
 ## Local startup verified on 21 September 2026
 
 The Windows `py` launcher reported `No installed Python found!`, while `python` resolved to Python 3.13.7. Use these commands from the project folder:

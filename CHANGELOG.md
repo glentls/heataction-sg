@@ -26,7 +26,6 @@
 
 - Repaired the Windows virtual environment with Python 3.13.7 and documented the `python` fallback for the failing `py` launcher.
 - Generated 4,033 synthetic observations, passed all 16 regression tests and JavaScript syntax validation, and verified the running local server's planning and CSV endpoints.
-- Linked the owner-provided original creation conversation in README and continuation notes; shared-chat retrieval was unavailable.
 - Recorded the headless browser failure and remaining manual visual check. Application code and Databricks delivery architecture are unchanged.
 
 ## 0.1.0 - 21 September 2026

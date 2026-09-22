@@ -1,19 +1,30 @@
 # HeatAction SG
 
-A working first iteration for DAISI B1 HeatGuard. It includes a local planning app, public weather collectors, an exploratory forecast experiment, Databricks source notebooks and project documentation.
+HeatAction SG is a community outreach planning tool for extreme-heat events in Singapore, built for the DAISI 2026 B1 HeatGuard track. It helps a coordinator decide where to send limited outreach teams during a hot period by combining live public weather observations with demographic context, then explains and exports the resulting plan.
 
-**Private repository:** [glentls/heataction-sg](https://github.com/glentls/heataction-sg). See `docs/GITHUB.md` for saving future changes.
+This repository contains the local planning application, public weather collectors, an exploratory forecast experiment, Databricks source notebooks, and full project documentation.
 
-**Start here:** run the synthetic demo, understand the planning flow, then verify live collection on your computer. All demo names, counts and readings are fictional. This is not the final competition submission.
+## Status
 
-**Project origin:** [Original HeatAction creation chat](https://chatgpt.com/share/e/6ab0d893-c718-83ec-bae1-df575a54ab4b) (provided by the project owner; its contents were not accessible during local verification). See `docs/NEXT_SESSION.md` for the saved continuation context.
+Early-stage prototype under active development. The planning engine, live weather collection, real Singapore demographics/boundaries for a three-area pilot, and coordinator controls (locking, scenario comparison, CSV export) are implemented and tested locally. Trained forecasting, Databricks deployment, and field/partner validation are not yet complete. See [docs/STATUS.md](docs/STATUS.md) for the current, detailed state and [docs/TASKS.md](docs/TASKS.md) for what's next.
 
-## Open in VS Code (Windows)
+## Features
 
-1. Extract the ZIP and open the `heataction-sg` folder with **File > Open Folder**.
-2. Open **Terminal > New Terminal**. Ensure the terminal is in the folder containing this README.
-3. Check that Python 3.11 or newer is installed: `py --version`.
-4. Run the following commands in PowerShell. No package installation or environment activation is needed for the demo.
+- **Real-area planning pilot** — Ang Mo Kio, Bedok and Jurong West, with official Census 2020 age profiles, all 55 URA Master Plan 2019 planning-area boundaries, and an interactive local SVG map (no external tile service required).
+- **Transparent allocation policy** — ranks areas by a heat category and senior-population priority, gated by observation freshness, mapping review status, and a fixed team budget. Every recommendation is explained in plain language.
+- **Coordinator controls** — lock a team assignment to a specific area with a recorded reason (persisted and included in exports), and compare two planning scenarios side by side (for example two versus three team slots) to see which areas gain or lose support.
+- **Live weather collection** — public WBGT and rainfall observations from data.gov.sg, with raw response snapshots, malformed-record quarantine, and idempotent local storage.
+- **CSV export** with full provenance: data mode, source timestamps, population vintage, mapping review status, and lock reasons.
+- **Exploratory forecasting** — chronological comparison of a persistence baseline, a time-of-day baseline, and gradient boosting, with results reported honestly as not yet validated for production use.
+- **Databricks source notebooks** for managed Delta ingestion and MLflow-tracked evaluation, for the intended deployment target.
+
+The application currently forecasts by carrying the latest WBGT reading forward for one hour (a **persistence baseline**), clearly labelled as such in the interface. It is not a trained model, and the exploratory ML experiment is not yet used for live inference.
+
+## Getting started
+
+Requires Python 3.11 or newer. No external services or paid API keys are required for the synthetic demo.
+
+### Windows (PowerShell)
 
 ```powershell
 py -m venv .venv
@@ -21,27 +32,9 @@ py -m venv .venv
 .\.venv\Scripts\python.exe -m heataction serve
 ```
 
-5. Open http://127.0.0.1:8000 in your browser. Keep the terminal running. Press Ctrl+C to stop it.
+If `py` is not available, use `python -m venv .venv` instead, provided `python --version` reports 3.11 or newer. If using VS Code, select `.venv` as the Python interpreter to use the included debug configuration and tasks.
 
-If `py` is unavailable or reports `No installed Python found!`, but `python --version` works and is 3.11+, use `python -m venv .venv` for the first command. This fallback was verified on this Windows machine with Python 3.13.7. If neither works, install Python from https://www.python.org/downloads/ and reopen VS Code.
-
-Select `.venv` as the Python interpreter in VS Code if using the included debug configuration and tasks. The command line works independently of the editor extensions.
-
-## Real-area map and planning pilot
-
-The observed pilot includes **Ang Mo Kio, Bedok and Jurong West**, official Census 2020 age profiles, and all 55 URA Master Plan 2019 planning-area boundaries. The reference snapshots ship with the project; map rendering needs no external tile service or extra packages.
-
-```powershell
-.\.venv\Scripts\python.exe -m heataction check-areas
-.\.venv\Scripts\python.exe -m heataction ingest --source all
-.\.venv\Scripts\python.exe -m heataction serve --mode observed --pilot --port 8001
-```
-
-Open http://127.0.0.1:8001. Select an area to inspect its age profile, population vintage, mapped station, weather freshness and assignment explanation. Switch between senior population share and pilot station heat, zoom to an area, or exclude a pilot area from the plan. The other 52 areas provide demographic context only.
-
-The 2020 population counts are historical, not current estimates. Pilot mapping checks verify station identities, source coordinates inside the 2019 polygons, and demographic joins; they do not prove station representativeness or partner approval. Missing/stale weather stays Unknown and receives no heat-based assignment. The default synthetic demo remains separate.
-
-## macOS or Linux
+### macOS or Linux
 
 ```bash
 python3 -m venv .venv
@@ -49,73 +42,96 @@ python3 -m venv .venv
 .venv/bin/python -m heataction serve
 ```
 
-## What to try
+Open http://127.0.0.1:8000 and keep the terminal running. Press Ctrl+C to stop the server. All demo area names, populations and readings are synthetic and clearly labelled as such in the interface.
 
-- Change the team budget from 2 to 1. The additional assignment changes.
-- Exclude an area and inspect the remaining allocation.
-- Adjust the relative weight on senior count versus senior share.
-- Open the recommendation explanation and export a CSV.
-- Set the team budget to zero. The app should allocate zero slots.
-- Click **Lock** on an eligible area, save a reason, and see it hold its slot even at a lower budget. Unlocking keeps the saved reason for reuse; a separate action deletes it.
-- Use **Compare scenarios** to set Scenario A to 2 team slots and Scenario B to 3, then compare which areas gain or lose an assignment.
+## Real-area planning pilot
 
-The app currently forecasts by carrying the latest WBGT forward for one hour. It labels this **persistence baseline**, not trained AI. The independent ML experiment is not yet used for app inference.
+```powershell
+.\.venv\Scripts\python.exe -m heataction check-areas
+.\.venv\Scripts\python.exe -m heataction ingest --source all
+.\.venv\Scripts\python.exe -m heataction serve --mode observed --pilot --port 8001
+```
 
-## Collect real observations
+Open http://127.0.0.1:8001. Select an area on the map to inspect its age profile, population vintage, mapped weather station, observation freshness, and assignment explanation. Switch between the senior-population and heat-proxy layers, zoom into an area, or include/exclude a pilot area from the plan. The remaining 52 planning areas provide demographic context only.
 
-Run in another terminal, using the virtual environment's Python:
+The 2020 population figures are historical, not current estimates. Station-to-area mapping has passed a technical review (source identity, coordinate containment, checksum verification) but not field or partner validation; see [docs/DATA.md](docs/DATA.md) for the full mapping methodology and limitations.
+
+## Collecting live weather observations
 
 ```powershell
 .\.venv\Scripts\python.exe -m heataction ingest --source all
 .\.venv\Scripts\python.exe -m heataction serve --mode observed --port 8001
 ```
 
-Open http://127.0.0.1:8001. Without a reviewed area file, this shows a weather observation inspector and no demographic recommendations. The code does not blend synthetic population data with actual weather.
-
-To plan with real areas, create the reviewed JSON described in `docs/DATA.md` and restart:
+Without a reviewed area file, this mode shows a live weather observation inspector without demographic recommendations — synthetic and observed data are never blended. To plan with a custom set of reviewed areas, create the JSON file described in `docs/DATA.md` and run:
 
 ```powershell
 .\.venv\Scripts\python.exe -m heataction serve --mode observed --areas data/areas_reviewed.json --port 8001
 ```
 
-Source collection is explicit; refreshing the browser reads stored observations. Rerun ingestion to retrieve new readings. Optional historical command: `python -m heataction ingest --source all --date 2026-09-20`. Historical access is not yet confirmed in the target deployment environment.
+Refreshing the browser reads stored observations; rerun `ingest` to fetch new readings.
 
-## Run tests
+## What to try
+
+- Change the team budget from 2 to 1 and observe how the assignment changes.
+- Exclude an area from the service-area filter and inspect the remaining allocation.
+- Adjust the relative weight between senior population count and senior population share.
+- Lock an area to a team slot with a recorded reason, then confirm it holds its slot even at a lower budget.
+- Use **Compare scenarios** to set two different team budgets (e.g. 2 vs 3 slots) and see which areas gain or lose an assignment.
+- Open the recommendation explanation panel and export the plan as a CSV.
+
+## Testing
 
 ```powershell
 .\.venv\Scripts\python.exe -m unittest discover -s tests -v
 ```
 
-## Run the optional forecast experiment
+## Optional forecast experiment
 
 ```powershell
 .\.venv\Scripts\python.exe -m pip install -e ".[ml]"
 .\.venv\Scripts\python.exe -m heataction evaluate --mode demo
 ```
 
-This compares persistence, a time-of-day baseline and gradient boosting with chronological splits. Synthetic metrics are only a code exercise. Use `--mode observed` once sufficient real history has been collected. Reports go in `artifacts/`.
+Compares a persistence baseline, a time-of-day baseline, and gradient boosting using chronological train/validation/test splits. Metrics on synthetic data are a code exercise only; use `--mode observed` once sufficient real weather history has been collected. Reports are written to `artifacts/`.
 
-## Project navigation
+## Project structure
 
 | Location | Purpose |
 |---|---|
 | `heataction/sources.py` | Public API access, response normalization and raw snapshots |
-| `heataction/geography.py` | Verified Census/URA joins, polygon checks and reviewed pilot mappings |
-| `data/reference/observed/` | Official demographic/boundary snapshots, checksums and mapping audit |
-| `heataction/storage.py` | Local cache and ingestion run log |
+| `heataction/geography.py` | Census/URA joins, polygon checks and reviewed pilot mappings |
+| `data/reference/observed/` | Official demographic and boundary snapshots, checksums and mapping audit |
+| `heataction/storage.py` | Local observation cache, ingestion run log and lock-reason storage |
 | `heataction/planner.py` | Priority policy, freshness checks and capacity allocation |
-| `heataction/evaluation.py` | Exact next-hour targets and chronological model comparison |
-| `heataction/server.py` | Local app API and CSV exports |
+| `heataction/evaluation.py` | Next-hour forecast targets and chronological model comparison |
+| `heataction/server.py` | Local application API and CSV export |
 | `heataction/web/index.html` | Browser interface |
 | `heataction/web/map.js` | Interactive local SVG map and area detail panels |
-| `notebooks/` | Databricks ingestion and MLflow experiment source notebooks |
+| `notebooks/` | Databricks ingestion and MLflow experiment notebooks |
 | `tests/` | Data, allocation and temporal validation checks |
-| `docs/STATUS.md` | Current truth about implementation and validation |
-| `docs/TASKS.md` | Next work in priority order |
-| `docs/DECISIONS.md` | Reasons behind major choices |
-| `docs/DATA.md` | Sources, contracts, limitations and mapping format |
-| `docs/DATABRICKS.md` | Workspace deployment instructions |
-| `docs/NEXT_SESSION.md` | Context for continuing in your coding workspace |
-| `docs/VISION.md` | Original detailed proposal, including later features |
 
-Keep `docs/STATUS.md` current after each work session. Do not record API keys, passwords or personal resident records. See `docs/GITHUB.md` for repository setup and how to save future changes.
+## Documentation
+
+| Document | Contents |
+|---|---|
+| [docs/STATUS.md](docs/STATUS.md) | Current implementation state and what has been verified |
+| [docs/TASKS.md](docs/TASKS.md) | Remaining work, in priority order |
+| [docs/DECISIONS.md](docs/DECISIONS.md) | Rationale behind major design choices |
+| [docs/DATA.md](docs/DATA.md) | Data sources, API contracts, and area-mapping format |
+| [docs/DATABRICKS.md](docs/DATABRICKS.md) | Workspace deployment instructions |
+| [docs/VISION.md](docs/VISION.md) | Full product proposal, including future scope |
+| [docs/GITHUB.md](docs/GITHUB.md) | Repository access and how to save changes |
+| [AGENTS.md](AGENTS.md) | Working agreement and non-negotiable project constraints |
+
+## Data sources and attribution
+
+- Heat stress (WBGT) and rainfall: [NEA real-time weather API](https://data.gov.sg/datasets/d_87884af1f85d702d4f74c6af13b4853d/view), via data.gov.sg.
+- Resident age profiles: [Singapore Census of Population 2020](https://data.gov.sg/datasets/d_d95ae740c0f8961a0b10435836660ce0/view), SingStat.
+- Planning-area boundaries: [URA Master Plan 2019](https://data.gov.sg/datasets/d_4765db0e87b9c86336792efe8a1f7a66/view).
+
+All datasets are used under the [Singapore Open Data Licence](https://data.gov.sg/open-data-licence). Population figures reflect the 2020 Census and are not current estimates.
+
+## Scope and limitations
+
+This is a planning-support prototype, not a medical or emergency-response system. Priority scores are planning proxies based on stated policy weights, not individual illness risk assessments or measures of completed outreach. Data mode (synthetic or observed) is always labelled explicitly in the interface and exports. See [docs/STATUS.md](docs/STATUS.md) for what has and has not been verified.
