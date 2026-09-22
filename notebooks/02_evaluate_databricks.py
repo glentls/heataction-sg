@@ -5,7 +5,10 @@
 # MAGIC This notebook is supplied for workspace execution; it has not been run here.
 
 # COMMAND ----------
-# MAGIC %pip install "scikit-learn>=1.5,<2" mlflow
+# MAGIC %pip install "scikit-learn>=1.5,<2" mlflow "typing_extensions>=4.13"
+# typing_extensions>=4.13 is pinned explicitly: the runtime's preinstalled version predates
+# mlflow's pydantic dependency (ImportError: cannot import name 'Sentinel'), observed 22 Sep 2026.
+dbutils.library.restartPython()
 
 # COMMAND ----------
 import sys, re, json

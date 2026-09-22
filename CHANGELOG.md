@@ -1,5 +1,23 @@
 # Changelog
 
+## Databricks demographic tables and App - 22 September 2026
+
+- Added `notebooks/03_geography_and_plan_databricks.py`: uploads the reviewed Census/URA/mapping snapshots to a Unity Catalog volume, rebuilds the pilot via the same validation as the local app, and writes `heataction_silver.area_demographics`, `heataction_silver.pilot_mapping_audit`, and a `heataction_gold.area_priority_plan` table materialised by calling `heataction.planner.build_plan` directly.
+- Found and fixed a real bug: writing the plan table failed with `CANNOT_DETERMINE_TYPE` whenever every area was stale (an expected, ongoing state, not a fluke) because Spark cannot infer a type from all-null columns; fixed with an explicit schema.
+- Built and deployed `databricks_app/`, a minimal Databricks App (plain `http.server`, no new framework) that authenticates as its own service principal and renders the live Gold plan table. Verified it end-to-end with an authenticated request, then stopped it, since an App consumes compute continuously while a one-time job run does not.
+
+## First Databricks deployment - 22 September 2026
+
+- Executed the ingestion notebook for real in a Databricks Free Edition workspace: created and verified live Bronze/Silver/Gold Unity Catalog tables (30 WBGT / 89 rainfall rows, 30 fresh persistence forecasts), matching local collection counts.
+- Executed the evaluation notebook, found and fixed a real `typing_extensions`/mlflow dependency conflict in the Databricks Runtime, then confirmed it correctly refuses to run with a clear error until at least 7 days of observed history exist.
+- Deliberately used one-time manual job runs only (no recurring schedule), so no ongoing compute cost was introduced.
+
+## Weather history charts - 22 September 2026
+
+- Added a bounded, indexed history query and an `/api/history` endpoint, replacing a full-table scan for chart data.
+- Added a per-station weather-history chart (local inline SVG, no library) showing recent WBGT trend, observation age, and a visually and textually distinguished one-hour persistence forecast point, with hover tooltip and a table fallback.
+- Passed 29 regression tests (27 existing, 2 new) and real-headless-Chrome interaction checks; fixed a transparent-hit-area pointer-events bug found during that check.
+
 ## Lock controls and scenario comparison - 21 September 2026
 
 - Added coordinator lock/unlock controls per area, requiring a saved, nonempty reason; reasons persist server-side in SQLite and appear in the plan, recommendation explanations and CSV export.

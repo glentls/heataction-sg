@@ -3,6 +3,7 @@ import csv
 import io
 import json
 import os
+import shutil
 import socket
 import subprocess
 import sys
@@ -17,7 +18,7 @@ from urllib.request import Request, urlopen
 
 from heataction.demo import DEMO_AREAS
 from heataction.sources import normalize, utc_time, fetch_pages
-from heataction.storage import upsert, observations, save_lock_reason, delete_lock_reason, lock_reasons
+from heataction.storage import upsert, observations, save_lock_reason, delete_lock_reason, lock_reasons, history
 from heataction.planner import build_plan, heat_category
 from heataction.evaluation import supervised_examples, chronological_split
 from heataction.server import safe_csv
@@ -96,6 +97,18 @@ class SourceTests(unittest.TestCase):
             upsert(root, [correction])
             upsert(root, [row])
             self.assertEqual(observations(root)[0]["value"], 32.0)
+
+    def test_history_is_bounded_and_chronological(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            base = sample_rows()[0]
+            rows = [{**base, "observed_at": datetime(2026, 9, 21, 6, i, tzinfo=timezone.utc).isoformat(),
+                     "source_updated_at": datetime(2026, 9, 21, 6, i, tzinfo=timezone.utc).isoformat(),
+                     "value": float(i)} for i in range(5)]
+            upsert(root, rows)
+            self.assertEqual([p["value"] for p in history(root, "wbgt", base["station_id"])], [0.0, 1.0, 2.0, 3.0, 4.0])
+            self.assertEqual([p["value"] for p in history(root, "wbgt", base["station_id"], limit=2)], [3.0, 4.0])
+            self.assertEqual(history(root, "wbgt", "unknown_station"), [])
 
     def test_lock_reasons_upsert_and_delete(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -188,77 +201,109 @@ class ForecastTests(unittest.TestCase):
 
 
 class ServerLockTests(unittest.TestCase):
-    def test_locks_require_a_reason_and_flow_into_plan_and_export(self):
+    def start_demo_server(self):
+        # mkdtemp (not TemporaryDirectory) so the process-stop cleanup, registered after this
+        # method's own rmtree cleanup, runs first and releases the SQLite file before deletion.
+        directory = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, directory, ignore_errors=True)
         project = Path(__file__).resolve().parents[1]
-        with tempfile.TemporaryDirectory() as directory:
-            env = {**os.environ, "PYTHONPATH": str(project)}
-            demo = subprocess.run([sys.executable, "-m", "heataction", "demo"], cwd=directory, env=env,
-                                  capture_output=True, text=True, timeout=30)
-            self.assertEqual(demo.returncode, 0, demo.stderr)
-            with socket.socket() as listener:
-                listener.bind(("127.0.0.1", 0))
-                port = listener.getsockname()[1]
-            process = subprocess.Popen([sys.executable, "-m", "heataction", "serve", "--mode", "demo",
-                                        "--port", str(port)], cwd=directory, env=env,
-                                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        env = {**os.environ, "PYTHONPATH": str(project)}
+        demo = subprocess.run([sys.executable, "-m", "heataction", "demo"], cwd=directory, env=env,
+                              capture_output=True, text=True, timeout=30)
+        self.assertEqual(demo.returncode, 0, demo.stderr)
+        with socket.socket() as listener:
+            listener.bind(("127.0.0.1", 0))
+            port = listener.getsockname()[1]
+        process = subprocess.Popen([sys.executable, "-m", "heataction", "serve", "--mode", "demo",
+                                    "--port", str(port)], cwd=directory, env=env,
+                                   stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+        def stop():
+            process.terminate()
+            process.wait(timeout=10)
+        self.addCleanup(stop)
+        base = f"http://127.0.0.1:{port}"
+        for _ in range(50):
             try:
-                base = f"http://127.0.0.1:{port}"
-                for _ in range(50):
-                    try:
-                        with urlopen(base + "/api/plan", timeout=1):
-                            break
-                    except URLError:
-                        if process.poll() is not None:
-                            self.fail("Demo server exited during startup")
-                        time.sleep(.1)
-                else:
-                    self.fail("Demo server did not start")
+                with urlopen(base + "/api/plan", timeout=1):
+                    break
+            except URLError:
+                if process.poll() is not None:
+                    self.fail("Demo server exited during startup")
+                time.sleep(.1)
+        else:
+            self.fail("Demo server did not start")
+        return base
 
-                # demo_north is High-category in the fixed demo snapshot, so it carries positive
-                # allocation value and is a valid lock target; demo_east's Low reading is not.
-                with self.assertRaises(HTTPError) as error:
-                    urlopen(base + "/api/plan?locked=demo_north")
-                self.assertEqual(error.exception.code, 400)
+    @staticmethod
+    def api(base, path, payload=None, method=None):
+        data = json.dumps(payload).encode() if payload is not None else None
+        request = Request(base + path, data=data, method=method,
+                          headers={"Content-Type": "application/json"} if data else {})
+        return urlopen(request)
 
-                def api(path, payload=None, method=None):
-                    data = json.dumps(payload).encode() if payload is not None else None
-                    request = Request(base + path, data=data, method=method,
-                                      headers={"Content-Type": "application/json"} if data else {})
-                    return urlopen(request)
+    def test_locks_require_a_reason_and_flow_into_plan_and_export(self):
+        base = self.start_demo_server()
 
-                with self.assertRaises(HTTPError) as error:
-                    api("/api/locks", {"area_id": "demo_north", "reason": "   "}, "POST")
-                self.assertEqual(error.exception.code, 400)
-                with self.assertRaises(HTTPError) as error:
-                    api("/api/locks", {"area_id": "not_a_real_area", "reason": "Clinic visit"}, "POST")
-                self.assertEqual(error.exception.code, 400)
+        # demo_north is High-category in the fixed demo snapshot, so it carries positive
+        # allocation value and is a valid lock target; demo_east's Low reading is not.
+        with self.assertRaises(HTTPError) as error:
+            urlopen(base + "/api/plan?locked=demo_north")
+        self.assertEqual(error.exception.code, 400)
 
-                with api("/api/locks", {"area_id": "demo_north", "reason": "Clinic visit scheduled 3pm"}, "POST") as response:
-                    saved = json.load(response)
-                self.assertEqual(saved["demo_north"]["reason"], "Clinic visit scheduled 3pm")
-                with api("/api/locks") as response:
-                    self.assertIn("demo_north", json.load(response))
+        with self.assertRaises(HTTPError) as error:
+            self.api(base, "/api/locks", {"area_id": "demo_north", "reason": "   "}, "POST")
+        self.assertEqual(error.exception.code, 400)
+        with self.assertRaises(HTTPError) as error:
+            self.api(base, "/api/locks", {"area_id": "not_a_real_area", "reason": "Clinic visit"}, "POST")
+        self.assertEqual(error.exception.code, 400)
 
-                with api("/api/plan?budget=1&locked=demo_north") as response:
-                    plan = json.load(response)
-                north = next(r for r in plan["rows"] if r["area_id"] == "demo_north")
-                self.assertTrue(north["locked"] and north["assigned"])
-                self.assertEqual(north["lock_reason"], "Clinic visit scheduled 3pm")
+        with self.api(base, "/api/locks", {"area_id": "demo_north", "reason": "Clinic visit scheduled 3pm"}, "POST") as response:
+            saved = json.load(response)
+        self.assertEqual(saved["demo_north"]["reason"], "Clinic visit scheduled 3pm")
+        with self.api(base, "/api/locks") as response:
+            self.assertIn("demo_north", json.load(response))
 
-                with api("/api/export?budget=1&locked=demo_north") as response:
-                    rows = list(csv.DictReader(io.StringIO(response.read().decode())))
-                exported = next(r for r in rows if r["area_id"] == "demo_north")
-                self.assertEqual(exported["lock_reason"], "Clinic visit scheduled 3pm")
-                self.assertEqual(exported["locked"], "True")
+        with self.api(base, "/api/plan?budget=1&locked=demo_north") as response:
+            plan = json.load(response)
+        north = next(r for r in plan["rows"] if r["area_id"] == "demo_north")
+        self.assertTrue(north["locked"] and north["assigned"])
+        self.assertEqual(north["lock_reason"], "Clinic visit scheduled 3pm")
 
-                with api("/api/locks?area_id=demo_north", method="DELETE") as response:
-                    self.assertTrue(json.load(response)["deleted"])
-                with self.assertRaises(HTTPError) as error:
-                    urlopen(base + "/api/plan?locked=demo_north")
-                self.assertEqual(error.exception.code, 400)
-            finally:
-                process.terminate()
-                process.wait(timeout=10)
+        with self.api(base, "/api/export?budget=1&locked=demo_north") as response:
+            rows = list(csv.DictReader(io.StringIO(response.read().decode())))
+        exported = next(r for r in rows if r["area_id"] == "demo_north")
+        self.assertEqual(exported["lock_reason"], "Clinic visit scheduled 3pm")
+        self.assertEqual(exported["locked"], "True")
+
+        with self.api(base, "/api/locks?area_id=demo_north", method="DELETE") as response:
+            self.assertTrue(json.load(response)["deleted"])
+        with self.assertRaises(HTTPError) as error:
+            urlopen(base + "/api/plan?locked=demo_north")
+        self.assertEqual(error.exception.code, 400)
+
+    def test_history_endpoint_is_bounded_and_validated(self):
+        base = self.start_demo_server()
+
+        with self.api(base, "/api/history?station_id=DEMO_N&source=wbgt&limit=5") as response:
+            body = json.load(response)
+        self.assertEqual(body["unit"], "degC_WBGT")
+        self.assertEqual(len(body["points"]), 5)
+        timestamps = [p["observed_at"] for p in body["points"]]
+        self.assertEqual(timestamps, sorted(timestamps))
+
+        with self.api(base, "/api/history?station_id=NOT_A_STATION") as response:
+            self.assertEqual(json.load(response)["points"], [])
+
+        with self.assertRaises(HTTPError) as error:
+            self.api(base, "/api/history")
+        self.assertEqual(error.exception.code, 400)
+        with self.assertRaises(HTTPError) as error:
+            self.api(base, "/api/history?station_id=DEMO_N&source=not_a_source")
+        self.assertEqual(error.exception.code, 400)
+        with self.assertRaises(HTTPError) as error:
+            self.api(base, "/api/history?station_id=DEMO_N&limit=0")
+        self.assertEqual(error.exception.code, 400)
 
 
 if __name__ == "__main__":

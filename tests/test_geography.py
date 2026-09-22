@@ -163,7 +163,8 @@ class PilotHTTPTests(unittest.TestCase):
                 with urlopen(base + "/api/geography") as response:
                     geography = json.load(response)
                 self.assertEqual(len(geography["geojson"]["features"]), 55)
-                for route, mime in (("/map.js", "application/javascript"), ("/map.css", "text/css")):
+                for route, mime in (("/map.js", "application/javascript"), ("/map.css", "text/css"),
+                                    ("/chart.js", "application/javascript"), ("/chart.css", "text/css")):
                     with urlopen(base + route) as response:
                         self.assertIn(mime, response.headers["Content-Type"])
                 with urlopen(base + "/api/export") as response:

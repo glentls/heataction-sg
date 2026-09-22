@@ -48,6 +48,17 @@ def observations(root: Path) -> list[dict]:
         db.close()
 
 
+def history(root: Path, source: str, station_id: str, limit: int = 200) -> list[dict]:
+    # Bounded, indexed lookup (uses the observations primary key) instead of the full-table scan in observations().
+    db = connect(root)
+    try:
+        rows = db.execute("""SELECT record_json FROM observations WHERE source = ? AND station_id = ?
+            ORDER BY observed_at DESC LIMIT ?""", (source, station_id, limit)).fetchall()
+        return [json.loads(row[0]) for row in reversed(rows)]
+    finally:
+        db.close()
+
+
 def log_run(root, source, status, accepted=0, rejected=0, detail=""):
     db = connect(root)
     try:

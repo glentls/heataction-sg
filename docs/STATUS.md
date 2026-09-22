@@ -1,10 +1,10 @@
 # Project status
 
-Version 0.1.0. Updated 21 September 2026.
+Version 0.1.0. Updated 22 September 2026.
 
 ## Current milestone
 
-The local app now includes an observed three-area planning pilot with Census 2020 age profiles, matched URA 2019 boundaries and an interactive Singapore map, plus coordinator lock controls with recorded reasons and a side-by-side scenario comparison view. Live WBGT/rainfall collection succeeds on Glen's machine. Technical station mapping checks are implemented; partner/field validation and Databricks execution remain pending. The next feature milestone is real chronological WBGT evaluation and a deployed forecast artifact.
+The local app now includes an observed three-area planning pilot with Census 2020 age profiles, matched URA 2019 boundaries and an interactive Singapore map, coordinator lock controls with recorded reasons, a side-by-side scenario comparison view, and a per-station weather-history chart with observation age and a distinguished one-hour forecast point. Live WBGT/rainfall collection succeeds on Glen's machine. Technical station mapping checks are implemented. Databricks deployment now includes real Bronze/Silver/Gold weather tables, demographic and pilot-mapping Silver tables, a Gold area-priority-plan table materialised by the same allocation policy as the local app, and a working (currently stopped) Databricks App reading that plan table live over Unity Catalog. A scheduled recurring job and partner/field validation remain pending. The next feature milestone is either scheduling that Databricks ingestion (and re-running the plan notebook after each run) or real chronological WBGT evaluation once enough observed history exists.
 
 ## Implemented
 
@@ -16,8 +16,10 @@ The local app now includes an observed three-area planning pilot with Census 202
 - Freshness gate, missing-data status, fixed reference cohort and budget-constrained allocation.
 - Coordinator lock controls with a required, server-persisted reason per locked area, shown in the plan, explanations and CSV export.
 - A side-by-side scenario comparison view (for example two versus three team slots) showing which areas gain or lose an assignment.
+- A per-station weather-history chart (bounded, indexed query, not a full-table scan) showing recent WBGT readings, observation age, and a visually and textually distinguished one-hour persistence forecast point, with a hover tooltip and a plain-table fallback.
 - Optional baseline and gradient-boosting experiment with exact next-hour labels, chronological splits and station metrics.
-- Databricks source notebooks for Delta ingestion and MLflow evaluation.
+- Databricks source notebooks for Delta ingestion, Unity Catalog demographic/plan materialisation, and MLflow evaluation, all executed successfully in a real workspace (see the dated entries below).
+- A Databricks App (`databricks_app/`) that queries the Gold area-priority-plan table live over a SQL warehouse and renders it as a read-only, explicitly labelled page; deployed and verified working, then stopped to avoid ongoing compute.
 - VS Code tasks, debug configuration, tests and documentation.
 - Strict observed Census/URA joins with source checksums, three documented station mappings and moved-station gating.
 - Interactive local SVG map of all 55 planning areas, demographic and pilot heat layers, age profiles, coverage status and assignment explanations.
@@ -46,7 +48,7 @@ The local app now includes an observed three-area planning pilot with Census 202
 - Direct Python outbound access timed out in the original validation environment. Live collection has since succeeded on Glen's computer as recorded below; Databricks source access still needs verification.
 - Historical API date access, completeness and pagination need deployment smoke tests.
 - The initial sandboxed browser check failed. The observed pilot has since passed real Chrome interaction and desktop/mobile rendering checks outside the sandbox; broader user testing remains pending.
-- Databricks notebooks have not been run in a workspace. Catalogue permissions, quotas and source access remain to be confirmed.
+- The ingestion, geography/plan, and evaluation notebooks have all now been run successfully in a real workspace (below). The evaluation notebook has not yet produced a report, since observed history is still far short of the 7-day gate; that is its correct behaviour, not a defect. A scheduled recurring ingestion job has not been created.
 - Real population and boundaries are integrated locally. Mapping is limited to three technically reviewed station proxies; automatic nationwide assignment and partner validation are not implemented.
 - Rainfall is ingested and displayed but not used by the initial model.
 - The app uses persistence only. The optional ML experiment does not deploy a model into the app.
@@ -54,7 +56,7 @@ The local app now includes an observed three-area planning pilot with Census 202
 
 ## Next task
 
-Run chronological evaluation on observed WBGT and add an evaluated forecast artifact/inference path, preserving the persistence baseline comparison. Continue collecting observed weather history; historical API access, field validation and Databricks deployment remain separate pending tasks.
+Schedule the Databricks ingestion (and re-running the plan notebook after each ingestion run) as a recurring Lakeflow Job, since only manual runs exist today. Separately, once enough observed history exists, run chronological evaluation on observed WBGT and add an evaluated forecast artifact/inference path preserving the persistence baseline comparison. Historical API access and field validation remain separate pending tasks.
 
 ## Real-area map milestone, 21 September 2026
 
@@ -78,6 +80,35 @@ Run chronological evaluation on observed WBGT and add an evaluated forecast arti
 - Added 1 storage unit test and 1 subprocess HTTP integration test (spawns `serve --mode demo` and exercises `/api/locks` plus the plan/export validation and data). All 27 regression tests pass locally (Python 3.13.7). JavaScript syntax passed via `node --check`.
 - Verified interactively with real headless Chrome (`artifacts/check-locks-browser.mjs`, not committed): lock validation, save/reason round-trip and pre-fill on reopen, unlock, explanation text, and the two-scenario diff, all with zero JavaScript exceptions; 390px width produced no horizontal overflow. Evidence is local only, matching the project's prior browser-check pattern.
 - Not yet done: only the latest reason per area is kept (no history/audit trail across relocks), and no field/coordinator usability testing of the new controls.
+
+## Weather history charts, 22 September 2026
+
+- Added a bounded, indexed `history()` query (`heataction/storage.py`, keyed on the existing `(source, station_id, observed_at)` primary key) and an `/api/history` endpoint (`station_id`, `source`, `limit`, capped at 1000) instead of loading the full observation table for chart data.
+- Added a per-station weather-history chart to the "Source observations" panel: a hand-rolled inline SVG line chart (`heataction/web/chart.js` + `chart.css`, no charting library or CDN, consistent with the existing map's approach) showing recent WBGT readings, a filled marker and direct label for the latest observation with its age in minutes, and a dashed connector to a hollow marker and label for the one-hour persistence-baseline forecast point, textually distinguished as "(forecast)" everywhere it appears.
+- Added a hover crosshair and tooltip (pointer events on a transparent hit rectangle) and a keyboard/screen-reader-reachable "View as table" fallback listing every point, so no information is hover-only.
+- A station selector lists every WBGT station with data; a "Limited history" note appears below five observations, and an explicit message appears when a station has none yet, rather than rendering a misleading empty chart.
+- Added 1 storage unit test and 1 subprocess HTTP integration test (bounds, chronological order, unknown station, and validation of `source`/`limit`/missing `station_id`). All 29 regression tests pass locally (Python 3.13.7).
+- Verified interactively with real headless Chrome (`artifacts/check-history-browser.mjs`, not committed): station population, forecast marker and label, table fallback, station switching, and hover-tooltip behaviour (fixed one bug found this way: the transparent SVG hit rectangle needed explicit `pointer-events:all`, since a CSS-transparent fill is otherwise not hit-tested). No JavaScript exceptions; no 390px-width overflow.
+- Not yet done: the review that prompted this noted the observed database currently holds very little real history (collection has only been run a few times), so the chart's real-data view will stay sparse until ingestion runs regularly; no scheduler was added in this pass.
+
+## First Databricks deployment, 22 September 2026
+
+- Installed the Databricks CLI (v1.17.0) and authenticated via OAuth browser login to Glen's Databricks Free Edition workspace (`https://dbc-739b29bf-8050.cloud.databricks.com`, workspace id `7474651204213756`). No token was ever shared in chat.
+- Uploaded the `heataction` package as plain workspace files (confirmed `object_type: FILE`, not converted to notebooks) and both source notebooks to `/Workspace/Users/glentanlusheng@gmail.com/heataction-sg/`.
+- Ran `01_ingest_databricks` as a one-time job submission (`catalog=workspace`, live fetch, no `raw_dir`/`date`) against the `Serverless Starter Warehouse`. It succeeded and created real Unity Catalog tables: `workspace.heataction_bronze.weather_responses` (1 raw response per source), `workspace.heataction_silver.weather_observations` (30 WBGT rows, 89 rainfall rows — the same counts as the local machine's most recent live collection), and the `workspace.heataction_gold.current_persistence_forecasts` view (30 fresh station forecasts, `model_version = persistence_v0_1`). Verified all three by querying them directly through the SQL Statement Execution API, not just by trusting the job's "success" status.
+- Ran `02_evaluate_databricks` the same way. First attempt failed with `ImportError: cannot import name 'Sentinel' from 'typing_extensions'`: the Databricks Runtime's preinstalled `typing_extensions` predates what mlflow's `pydantic` dependency needs. Fixed by pinning `typing_extensions>=4.13` in the notebook's `%pip install` line and adding an explicit `dbutils.library.restartPython()` (`notebooks/02_evaluate_databricks.py`). Re-ran: it now correctly reaches and raises `ValueError: Collect at least 7 days of usable history before this exploratory experiment` — the intended gate from `heataction/evaluation.py`, working as designed against real (currently very sparse) observed history. This is a genuine bug found and fixed by real execution, not a hypothetical.
+- Scope for this pass was deliberately limited to a manual run plus table verification (the user's choice): no recurring Databricks Job/schedule was created, so there is no ongoing compute cost. All runs used `jobs submit` (one-time), which does not appear in the Jobs UI and does not retry.
+- Not yet done: the `data/reference/observed/` demographic/boundary snapshots have not been uploaded or ingested into Bronze; no Gold area-priority/planning tables exist; no Databricks App or dashboard is connected to any of this; no scheduled collection.
+
+## Databricks demographic tables and App, 22 September 2026
+
+- Created a managed Unity Catalog volume `workspace.heataction_bronze.reference` and uploaded the reviewed Census/URA/mapping snapshots from `data/reference/observed/` into it.
+- Added `notebooks/03_geography_and_plan_databricks.py`: reruns `heataction.geography.build_pilot` (the same checksum/containment/join validation as locally) against that volume, then writes `heataction_silver.area_demographics` (all 55 boundaries, 3 flagged `pilot`, 7 with genuinely unavailable — not zeroed — resident counts) and `heataction_silver.pilot_mapping_audit` (the technical review record for the 3 pilot links).
+- The same notebook then pulls the latest Silver WBGT readings and calls `heataction.planner.build_plan` directly — the identical allocation function the local app serves, not a reimplementation — writing the result to `heataction_gold.area_priority_plan` (overwritten each run; represents "the current plan", matching the existing Gold forecast view's framing).
+- First run hit a real bug: `spark.createDataFrame` failed with `CANNOT_DETERMINE_TYPE` because every pilot area was stale at that moment (a real, expected state — not a bug in the plan itself) and `forecast_wbgt`/`priority` were `None` for every row, leaving Spark unable to infer a column type. Fixed by giving the write an explicit `StructType` schema instead of relying on inference; this is a permanent fix, since some areas being stale/missing at read time is expected, ongoing behaviour, not a one-off. Re-ran ingestion immediately afterward and re-ran this notebook: with fresh data, all three pilot areas showed `status = Ready`, real WBGT values (24.8-27.8 °C, all category Low at that hour, so zero slots assigned) — verified by direct SQL query, not by trusting job success alone.
+- Built and deployed a Databricks App (`databricks_app/app.py`, `app.yaml`, `requirements.txt`): a plain `http.server`-based page (no new framework, consistent with the rest of the project) that authenticates as the app's own service principal (`databricks.sdk.core.Config` + `databricks-sql-connector`, no user token involved) and queries `heataction_gold.area_priority_plan` live over the `Serverless Starter Warehouse`. Granted the app's service principal `CAN_USE` on that warehouse and `USE`/`SELECT` on the `heataction_gold` and `heataction_silver` schemas.
+- Verified the deployed app end-to-end with an authenticated HTTP request (HTTP 200, correct plan rows, correct labels) before stopping it. Per the project's own "avoid continuously running compute" principle (docs/DATABRICKS.md), the app was stopped immediately after verification — creating and deploying it does consume compute while running, unlike the one-time `jobs submit` runs used elsewhere. It can be restarted with `databricks apps start heataction-plan`.
+- Not yet done: no scheduled Job re-runs ingestion or the plan notebook automatically, so both Gold tables the app reads will go stale until someone reruns them manually; the app has no auto-refresh/polling of its own either (it only re-queries on page load).
 
 ## Live collection and GitHub connection, 21 September 2026
 

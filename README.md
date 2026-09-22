@@ -6,17 +6,18 @@ This repository contains the local planning application, public weather collecto
 
 ## Status
 
-Early-stage prototype under active development. The planning engine, live weather collection, real Singapore demographics/boundaries for a three-area pilot, and coordinator controls (locking, scenario comparison, CSV export) are implemented and tested locally. Trained forecasting, Databricks deployment, and field/partner validation are not yet complete. See [docs/STATUS.md](docs/STATUS.md) for the current, detailed state and [docs/TASKS.md](docs/TASKS.md) for what's next.
+Early-stage prototype under active development. The planning engine, live weather collection, real Singapore demographics/boundaries for a three-area pilot, and coordinator controls (locking, scenario comparison, CSV export) are implemented and tested locally. The full pipeline has also run successfully in a real Databricks workspace: live Bronze/Silver/Gold weather and demographic tables, a Gold priority-plan table built from the same allocation policy as the local app, and a working Databricks App that reads it. That App is currently stopped between demonstrations, and nothing refreshes those tables automatically yet — there is no scheduled job. Trained forecasting and field/partner validation are also not yet complete. See [docs/STATUS.md](docs/STATUS.md) for the current, detailed state and [docs/TASKS.md](docs/TASKS.md) for what's next.
 
 ## Features
 
 - **Real-area planning pilot** — Ang Mo Kio, Bedok and Jurong West, with official Census 2020 age profiles, all 55 URA Master Plan 2019 planning-area boundaries, and an interactive local SVG map (no external tile service required).
 - **Transparent allocation policy** — ranks areas by a heat category and senior-population priority, gated by observation freshness, mapping review status, and a fixed team budget. Every recommendation is explained in plain language.
 - **Coordinator controls** — lock a team assignment to a specific area with a recorded reason (persisted and included in exports), and compare two planning scenarios side by side (for example two versus three team slots) to see which areas gain or lose support.
+- **Weather history charts** — a per-station chart of recent WBGT readings with observation age and a visually distinguished one-hour forecast point, plus a hover tooltip and a plain-table fallback.
 - **Live weather collection** — public WBGT and rainfall observations from data.gov.sg, with raw response snapshots, malformed-record quarantine, and idempotent local storage.
 - **CSV export** with full provenance: data mode, source timestamps, population vintage, mapping review status, and lock reasons.
 - **Exploratory forecasting** — chronological comparison of a persistence baseline, a time-of-day baseline, and gradient boosting, with results reported honestly as not yet validated for production use.
-- **Databricks source notebooks** for managed Delta ingestion and MLflow-tracked evaluation, for the intended deployment target.
+- **Databricks deployment** — source notebooks for managed Delta ingestion, Unity Catalog demographic/priority tables, and MLflow-tracked evaluation, plus a minimal Databricks App reading the deployed plan table. All executed successfully in a real workspace; see docs/DATABRICKS.md.
 
 The application currently forecasts by carrying the latest WBGT reading forward for one hour (a **persistence baseline**), clearly labelled as such in the interface. It is not a trained model, and the exploratory ML experiment is not yet used for live inference.
 
@@ -79,6 +80,7 @@ Refreshing the browser reads stored observations; rerun `ingest` to fetch new re
 - Lock an area to a team slot with a recorded reason, then confirm it holds its slot even at a lower budget.
 - Use **Compare scenarios** to set two different team budgets (e.g. 2 vs 3 slots) and see which areas gain or lose an assignment.
 - Open the recommendation explanation panel and export the plan as a CSV.
+- Scroll to **Weather history** and switch between stations to see each one's recent trend, observation age, and forecast point.
 
 ## Testing
 
@@ -108,7 +110,9 @@ Compares a persistence baseline, a time-of-day baseline, and gradient boosting u
 | `heataction/server.py` | Local application API and CSV export |
 | `heataction/web/index.html` | Browser interface |
 | `heataction/web/map.js` | Interactive local SVG map and area detail panels |
-| `notebooks/` | Databricks ingestion and MLflow experiment notebooks |
+| `heataction/web/chart.js` | Per-station weather-history chart |
+| `notebooks/` | Databricks ingestion, Unity Catalog demographic/plan, and MLflow experiment notebooks |
+| `databricks_app/` | Databricks App: a read-only view of the deployed Gold plan table |
 | `tests/` | Data, allocation and temporal validation checks |
 
 ## Documentation

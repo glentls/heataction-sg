@@ -8,9 +8,10 @@ from urllib.parse import urlparse, parse_qs
 
 from .planner import build_plan, validate_areas
 from .sources import now_utc
-from .storage import observations, recent_runs, save_lock_reason, delete_lock_reason, lock_reasons
+from .storage import observations, recent_runs, save_lock_reason, delete_lock_reason, lock_reasons, history
 
 MAX_LOCK_REASON_LENGTH = 300
+MAX_HISTORY_POINTS = 1000
 
 
 def safe_csv(value):
@@ -78,7 +79,7 @@ def serve(mode, port, area_path=None, *, pilot=False):
                 parsed = urlparse(self.path)
                 if parsed.path == "/":
                     return self.send_body((Path(__file__).parent / "web/index.html").read_text(encoding="utf-8"), "text/html")
-                if parsed.path in ("/map.js", "/map.css"):
+                if parsed.path in ("/map.js", "/map.css", "/chart.js", "/chart.css"):
                     mime = "application/javascript" if parsed.path.endswith(".js") else "text/css"
                     return self.send_body((Path(__file__).parent / "web" / parsed.path[1:]).read_text(encoding="utf-8"), mime)
                 if parsed.path == "/api/geography":
@@ -87,6 +88,22 @@ def serve(mode, port, area_path=None, *, pilot=False):
                     return self.send_body(json.dumps(geography, allow_nan=False), "application/json")
                 if parsed.path == "/api/locks":
                     return self.send_body(json.dumps(lock_reasons(root)), "application/json")
+                if parsed.path == "/api/history":
+                    params = parse_qs(parsed.query)
+                    station_id = params.get("station_id", [""])[0]
+                    source_name = params.get("source", ["wbgt"])[0]
+                    if not station_id:
+                        raise ValueError("station_id is required")
+                    if source_name not in ("wbgt", "rainfall"):
+                        raise ValueError("source must be wbgt or rainfall")
+                    limit = int(params.get("limit", ["200"])[0])
+                    if not 1 <= limit <= MAX_HISTORY_POINTS:
+                        raise ValueError(f"limit must be between 1 and {MAX_HISTORY_POINTS}")
+                    points = history(root, source_name, station_id, limit)
+                    body = {"source": source_name, "station_id": station_id,
+                            "unit": points[-1]["unit"] if points else ("degC_WBGT" if source_name == "wbgt" else "mm"),
+                            "points": [{"observed_at": p["observed_at"], "value": p["value"]} for p in points]}
+                    return self.send_body(json.dumps(body, allow_nan=False), "application/json")
                 if parsed.path not in ("/api/plan", "/api/export"):
                     return self.send_body("Not found", "text/plain", 404)
                 params = parse_qs(parsed.query, keep_blank_values=True)

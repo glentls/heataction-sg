@@ -4,6 +4,7 @@
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
   <title>HeatAction SG</title>
   <link rel="stylesheet" href="/map.css">
+  <link rel="stylesheet" href="/chart.css">
   <style>
     :root{--ink:#17363d;--teal:#007b78;--bg:#f3f6f4;--muted:#52666c;--border:#d9e3df}
     *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,sans-serif}
@@ -99,6 +100,11 @@
       <section class="panel section"><h2>Source observations</h2><p class="muted" id="asof"></p>
         <div class="table-wrap"><table><thead><tr><th>Source</th><th>Station</th><th>Value</th><th>Observed at</th></tr></thead><tbody id="sourceRows"></tbody></table></div>
         <details><summary>Recent collection runs</summary><pre id="runs" style="white-space:pre-wrap"></pre></details>
+        <h3 style="margin-top:22px">Weather history</h3>
+        <div class="weather-chart">
+          <div class="chart-controls"><label for="historyStation">WBGT station</label><select id="historyStation"></select></div>
+          <div id="historyChart"></div>
+        </div>
       </section>
     </section>
   </div>
@@ -106,6 +112,7 @@
     <br><a href="https://www.weather.gov.sg/heat-stress/" target="_blank" rel="noreferrer">Official heat-stress guidance</a></footer>
 </main>
 <script src="/map.js"></script>
+<script src="/chart.js"></script>
 <script>
   const el=id=>document.getElementById(id);
   const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -144,6 +151,8 @@
       el('asof').textContent='Plan issue time: '+time(data.as_of)+'. Forecast target: one hour later. Rainfall is displayed but is not yet a forecast feature.';
       el('sourceRows').innerHTML=data.latest_observations.map(r=>`<tr><td>${esc(r.source)}</td><td>${esc(r.station_name)}<small>${esc(r.station_id)}</small></td><td>${r.value.toFixed(1)} ${esc(r.unit)}</td><td>${time(r.observed_at)}</td></tr>`).join('');
       el('runs').textContent=data.recent_runs.length?JSON.stringify(data.recent_runs,null,2):'No collection runs. Synthetic demonstration data is generated locally.';
+      populateHistoryStations(data.latest_observations.filter(r=>r.source==='wbgt'));
+      loadHistory();
       el('export').href='/api/export?'+params();
       el('export').style.pointerEvents='auto';el('export').setAttribute('aria-disabled','false');
     }catch(error){
@@ -247,6 +256,28 @@
   }
   ['cmpAWeight','cmpBWeight'].forEach(id=>el(id).addEventListener('input',()=>el(id+'Value').textContent=el(id).value+'%'));
   el('compareBtn').addEventListener('click',runCompare);
+  function populateHistoryStations(stations){
+    const select=el('historyStation'), previous=select.value;
+    const unique=[...new Map(stations.map(s=>[s.station_id,s])).values()].sort((a,b)=>a.station_name.localeCompare(b.station_name));
+    select.innerHTML=unique.length?unique.map(s=>`<option value="${esc(s.station_id)}">${esc(s.station_name)} (${esc(s.station_id)})</option>`).join(''):'<option value="">No stations available yet</option>';
+    if(unique.some(s=>s.station_id===previous))select.value=previous;
+  }
+  async function loadHistory(){
+    const stationId=el('historyStation').value;
+    if(!stationId){el('historyChart').innerHTML='<div class="chart-empty">No WBGT stations available yet. Run ingestion to collect observations.</div>';return;}
+    try{
+      const res=await fetch('/api/history?station_id='+encodeURIComponent(stationId)+'&source=wbgt&limit=100');
+      const historyData=await res.json();
+      if(!res.ok)throw new Error(historyData.error||'Could not load weather history');
+      const row=lastPlan?.rows.find(r=>r.station_id===stationId&&r.status==='Ready');
+      const forecast=row?{observed_at:row.forecast_target,value:row.forecast_wbgt}:null;
+      window.heatChart.render('historyChart',{points:historyData.points,unit:historyData.unit,forecast,
+        stationLabel:el('historyStation').selectedOptions[0]?.textContent||stationId,stationId});
+    }catch(error){
+      el('historyChart').innerHTML=`<div class="chart-empty">${esc(error.message)}</div>`;
+    }
+  }
+  el('historyStation').addEventListener('change',loadHistory);
   ['budget','contacts','weight'].forEach(id=>el(id).addEventListener('change',load));el('refresh').addEventListener('click',load);load();
 </script>
 </body></html>

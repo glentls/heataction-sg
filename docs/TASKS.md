@@ -20,9 +20,12 @@
 - [ ] Add an evaluated forecast artifact and inference path to the app, preserving baseline comparison.
 - [x] Add UI controls and reason logging for locked assignments (core/API support exists).
 - [x] Add an interactive side-by-side scenario comparison (for example two versus three team slots).
+- [x] Add a recent weather-history chart per station, with observation age and a distinguished one-hour forecast point.
 - [ ] Compare planning policies under identical budget and capacity assumptions (baseline vs. trained model, once real chronological evaluation exists).
-- [ ] Run the Databricks notebooks in the final workspace.
-- [ ] Add Gold demographic/priority tables and Databricks-hosted interface.
+- [x] Run the Databricks notebooks in a real workspace (ingestion succeeded; evaluation correctly refuses pending more history; a real `typing_extensions`/mlflow dependency bug was found and fixed).
+- [x] Ingest `data/reference/observed/` demographic/boundary snapshots into a Unity Catalog volume and add Gold demographic/priority tables (`notebooks/03_geography_and_plan_databricks.py`).
+- [x] Connect a Databricks App to the deployed tables (`databricks_app/`); verified working end-to-end, then stopped to avoid ongoing compute.
+- [ ] Schedule Databricks ingestion, and re-running the plan notebook after it, as a recurring Job (deliberately deferred; only one-time manual runs so far, so both Gold tables go stale without a manual rerun).
 
 ## Before submission
 

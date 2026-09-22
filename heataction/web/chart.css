@@ -1,0 +1,38 @@
+/* Weather history chart: local inline SVG, no charting library or CDN. */
+.weather-chart{
+  --chart-surface:#fcfcfb;
+  --chart-ink:#0b0b0b;
+  --chart-secondary:#52514e;
+  --chart-muted:#898781;
+  --chart-grid:#e1e0d9;
+  --chart-line:#007b78;
+  --chart-fill:rgba(0,123,120,0.10);
+  --chart-forecast:#6b6a64;
+  background:var(--chart-surface);
+  border:1px solid var(--border,#d9e3df);
+  border-radius:9px;
+  padding:14px;
+}
+.weather-chart .chart-controls{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:6px}
+.weather-chart .chart-controls label{margin:0;font-weight:600}
+.weather-chart select{padding:7px;font:inherit}
+.weather-chart .chart-summary{font-size:13px;color:var(--chart-secondary);margin:2px 0 8px}
+.weather-chart .chart-wrap{position:relative}
+.weather-chart svg{width:100%;height:auto;display:block;touch-action:pan-y}
+.weather-chart .chart-line{fill:none;stroke:var(--chart-line);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.weather-chart .chart-forecast-line{fill:none;stroke:var(--chart-forecast);stroke-width:2;stroke-dasharray:5 4;stroke-linecap:round}
+.weather-chart .chart-fill{fill:var(--chart-fill);stroke:none}
+.weather-chart .chart-grid{stroke:var(--chart-grid);stroke-width:1}
+.weather-chart .chart-axis-text{fill:var(--chart-muted);font-size:11px}
+.weather-chart .chart-marker-observed{fill:var(--chart-line);stroke:var(--chart-surface);stroke-width:2}
+.weather-chart .chart-marker-forecast{fill:var(--chart-surface);stroke:var(--chart-forecast);stroke-width:2}
+.weather-chart .chart-label{fill:var(--chart-ink);font-size:12px;font-weight:600}
+.weather-chart .chart-label-forecast{fill:var(--chart-forecast);font-size:12px;font-weight:600}
+.weather-chart .chart-crosshair{stroke:var(--chart-muted);stroke-width:1}
+.weather-chart .chart-hit{fill:transparent;pointer-events:all;cursor:crosshair}
+.weather-chart .chart-empty{padding:16px 4px;color:var(--chart-secondary);font-size:14px}
+.weather-chart .chart-tooltip{position:absolute;pointer-events:none;background:var(--chart-ink);color:#fff;font-size:12px;
+  padding:6px 9px;border-radius:6px;transform:translate(-50%,-112%);white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,.25)}
+.weather-chart .chart-note{font-size:12px;color:var(--chart-secondary);margin-top:8px}
+.weather-chart table{border-collapse:collapse;width:100%;font-size:13px;margin-top:8px}
+.weather-chart th,.weather-chart td{padding:6px 8px;border-bottom:1px solid var(--chart-grid);text-align:left}
