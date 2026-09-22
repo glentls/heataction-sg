@@ -1,5 +1,7 @@
 # HeatAction SG
 
+[![CI](https://github.com/glentls/heataction-sg/actions/workflows/ci.yml/badge.svg)](https://github.com/glentls/heataction-sg/actions/workflows/ci.yml)
+
 HeatAction SG is a community outreach planning tool for extreme-heat events in Singapore, built for the DAISI 2026 B1 HeatGuard track. It helps a coordinator decide where to send limited outreach teams during a hot period by combining live public weather observations with demographic context, then explains and exports the resulting plan.
 
 This repository contains the local planning application, public weather collectors, an exploratory forecast experiment, Databricks source notebooks, and full project documentation.
@@ -89,6 +91,8 @@ Refreshing the browser reads stored observations; rerun `ingest` to fetch new re
 .\.venv\Scripts\python.exe -m unittest discover -s tests -v
 ```
 
+GitHub Actions (`.github/workflows/ci.yml`) runs this same suite on every push to `main` and every pull request, across Python 3.11 and 3.12, plus a real-browser check (`tests/browser/main_workflow.mjs`) of the main coordinator workflow — budget changes, locking, scenario comparison, weather history, and CSV export — against the synthetic demo. That browser check is a mechanical correctness check, not usability evidence; see docs/USABILITY_TEST.md for the distinction.
+
 ## Optional forecast experiment
 
 ```powershell
@@ -124,6 +128,8 @@ Replays every observed WBGT timestamp and scores the shipped allocation policy a
 | `notebooks/` | Databricks ingestion, Unity Catalog demographic/plan, and MLflow experiment notebooks |
 | `databricks_app/` | Databricks App: a read-only view of the deployed Gold plan table |
 | `tests/` | Data, allocation and temporal validation checks |
+| `tests/browser/main_workflow.mjs` | Real-browser regression check of the main coordinator workflow |
+| `.github/workflows/ci.yml` | Runs the test suite and browser check on every push/PR |
 
 ## Documentation
 

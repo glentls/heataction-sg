@@ -1,5 +1,11 @@
 # Changelog
 
+## GitHub Actions CI - 22 September 2026
+
+- Added `.github/workflows/ci.yml`: the full regression suite runs on Python 3.11 and 3.12 on every push to `main` and every pull request, with no install step needed (the package has zero runtime dependencies).
+- Added a second, gated job that seeds the synthetic demo, starts the local server, launches headless Chrome, and runs a new permanent browser regression check (`tests/browser/main_workflow.mjs`) of the main coordinator workflow: budget changes, locking, scenario comparison, weather history, and CSV export.
+- Verified the browser check standalone locally before wiring it into CI; the workflow itself has not yet run on GitHub's real runners.
+
 ## Policy backtest and usability protocol - 22 September 2026
 
 - Added a policy backtest (`heataction/policy_evaluation.py`, `python -m heataction compare-policies`) that replays historical WBGT data and scores the shipped allocation policy against four naive baselines. On the synthetic demo dataset: the shipped policy caught 93.1% of genuinely-High-heat timesteps versus 17.1% for a population-only baseline and 100% for a heat-only oracle baseline, with the gap to the oracle explained by the policy's deliberate demographic weighting.

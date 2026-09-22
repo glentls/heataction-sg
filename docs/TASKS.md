@@ -27,6 +27,8 @@
 - [x] Ingest `data/reference/observed/` demographic/boundary snapshots into a Unity Catalog volume and add Gold demographic/priority tables (`notebooks/03_geography_and_plan_databricks.py`).
 - [x] Connect a Databricks App to the deployed tables (`databricks_app/`); verified working end-to-end, then stopped to avoid ongoing compute.
 - [ ] Schedule Databricks ingestion, and re-running the plan notebook after it, as a recurring Job (deliberately deferred; only one-time manual runs so far, so both Gold tables go stale without a manual rerun).
+- [x] Run regression tests automatically on pushes and pull requests, and add browser checks for the main planning workflow (`.github/workflows/ci.yml`, `tests/browser/main_workflow.mjs`).
+- [ ] Confirm the CI workflow actually runs green on GitHub's real runners once pushed; it is only verified locally so far.
 
 ## Before submission
 

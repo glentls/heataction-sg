@@ -1,0 +1,73 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  tests:
+    name: Regression tests (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      # No install step: heataction has zero runtime dependencies (see pyproject.toml) and
+      # `python -m unittest discover` already resolves it from the checked-out working directory.
+      - name: Run regression tests
+        run: python -m unittest discover -s tests -v
+
+  browser-check:
+    name: Main planning workflow (browser)
+    runs-on: ubuntu-latest
+    needs: tests
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Seed synthetic demo data
+        run: python -m heataction demo
+
+      - name: Start the local server in the background
+        run: nohup python -m heataction serve --mode demo --port 8000 > server.log 2>&1 &
+
+      - name: Launch headless Chrome in the background
+        # google-chrome-stable ships preinstalled on the ubuntu-latest runner image.
+        run: |
+          nohup google-chrome --headless=new --disable-gpu --remote-debugging-port=9222 \
+            --no-first-run --no-default-browser-check \
+            --user-data-dir="$RUNNER_TEMP/chrome-profile" about:blank > chrome.log 2>&1 &
+
+      - name: Wait for the server and Chrome to be ready
+        run: |
+          for i in $(seq 1 50); do curl -sf http://127.0.0.1:8000/api/plan > /dev/null && break; sleep 0.2; done
+          for i in $(seq 1 50); do curl -sf http://127.0.0.1:9222/json/version > /dev/null && break; sleep 0.2; done
+
+      - name: Run the main planning workflow check
+        # Verifies budget changes, locking, scenario comparison, weather history and CSV export
+        # end to end in a real browser. See tests/browser/main_workflow.mjs and docs/USABILITY_TEST.md
+        # for what this does and does not prove.
+        run: node tests/browser/main_workflow.mjs
+
+      - name: Upload server/Chrome logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-check-logs
+          path: |
+            server.log
+            chrome.log
+          retention-days: 7
