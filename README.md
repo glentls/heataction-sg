@@ -6,7 +6,7 @@ This repository contains the local planning application, public weather collecto
 
 ## Status
 
-Early-stage prototype under active development. The planning engine, live weather collection, real Singapore demographics/boundaries for a three-area pilot, and coordinator controls (locking, scenario comparison, CSV export) are implemented and tested locally. The full pipeline has also run successfully in a real Databricks workspace: live Bronze/Silver/Gold weather and demographic tables, a Gold priority-plan table built from the same allocation policy as the local app, and a working Databricks App that reads it. That App is currently stopped between demonstrations, and nothing refreshes those tables automatically yet — there is no scheduled job. Trained forecasting and field/partner validation are also not yet complete. See [docs/STATUS.md](docs/STATUS.md) for the current, detailed state and [docs/TASKS.md](docs/TASKS.md) for what's next.
+Early-stage prototype under active development. The planning engine, live weather collection, real Singapore demographics/boundaries for a three-area pilot, and coordinator controls (locking, scenario comparison, CSV export) are implemented and tested locally. The full pipeline has also run successfully in a real Databricks workspace: live Bronze/Silver/Gold weather and demographic tables, a Gold priority-plan table built from the same allocation policy as the local app, and a working Databricks App that reads it. That App is currently stopped between demonstrations, and nothing refreshes those tables automatically yet — there is no scheduled job. A policy backtest measures the allocation policy against naive baselines on synthetic data; a coordinator usability-test protocol exists but has not yet been run with a real person. Trained forecasting and field/partner validation are also not yet complete. See [docs/STATUS.md](docs/STATUS.md) for the current, detailed state and [docs/TASKS.md](docs/TASKS.md) for what's next.
 
 ## Features
 
@@ -18,6 +18,7 @@ Early-stage prototype under active development. The planning engine, live weathe
 - **CSV export** with full provenance: data mode, source timestamps, population vintage, mapping review status, and lock reasons.
 - **Exploratory forecasting** — chronological comparison of a persistence baseline, a time-of-day baseline, and gradient boosting, with results reported honestly as not yet validated for production use.
 - **Databricks deployment** — source notebooks for managed Delta ingestion, Unity Catalog demographic/priority tables, and MLflow-tracked evaluation, plus a minimal Databricks App reading the deployed plan table. All executed successfully in a real workspace; see docs/DATABRICKS.md.
+- **Policy backtest** — replays historical WBGT data and scores the shipped allocation policy against naive baselines (population-only, heat-only, random, round-robin) under identical budgets, with results and limitations reported honestly; see docs/STATUS.md.
 
 The application currently forecasts by carrying the latest WBGT reading forward for one hour (a **persistence baseline**), clearly labelled as such in the interface. It is not a trained model, and the exploratory ML experiment is not yet used for live inference.
 
@@ -97,6 +98,14 @@ Refreshing the browser reads stored observations; rerun `ingest` to fetch new re
 
 Compares a persistence baseline, a time-of-day baseline, and gradient boosting using chronological train/validation/test splits. Metrics on synthetic data are a code exercise only; use `--mode observed` once sufficient real weather history has been collected. Reports are written to `artifacts/`.
 
+## Policy backtest
+
+```powershell
+.\.venv\Scripts\python.exe -m heataction compare-policies --mode demo --budget 1
+```
+
+Replays every observed WBGT timestamp and scores the shipped allocation policy against naive baselines (population-only, heat-only, random, round-robin), reporting how often each one's chosen area was genuinely in the High WBGT category. On the synthetic demo dataset the shipped policy catches 93% of those moments versus 17% for population-only; see docs/STATUS.md for the full numbers and limitations. Reports are written to `artifacts/`.
+
 ## Project structure
 
 | Location | Purpose |
@@ -107,6 +116,7 @@ Compares a persistence baseline, a time-of-day baseline, and gradient boosting u
 | `heataction/storage.py` | Local observation cache, ingestion run log and lock-reason storage |
 | `heataction/planner.py` | Priority policy, freshness checks and capacity allocation |
 | `heataction/evaluation.py` | Next-hour forecast targets and chronological model comparison |
+| `heataction/policy_evaluation.py` | Allocation-policy backtest against naive baselines |
 | `heataction/server.py` | Local application API and CSV export |
 | `heataction/web/index.html` | Browser interface |
 | `heataction/web/map.js` | Interactive local SVG map and area detail panels |
@@ -124,6 +134,7 @@ Compares a persistence baseline, a time-of-day baseline, and gradient boosting u
 | [docs/DECISIONS.md](docs/DECISIONS.md) | Rationale behind major design choices |
 | [docs/DATA.md](docs/DATA.md) | Data sources, API contracts, and area-mapping format |
 | [docs/DATABRICKS.md](docs/DATABRICKS.md) | Workspace deployment instructions |
+| [docs/USABILITY_TEST.md](docs/USABILITY_TEST.md) | Coordinator task-based usability-test protocol |
 | [docs/VISION.md](docs/VISION.md) | Full product proposal, including future scope |
 | [docs/GITHUB.md](docs/GITHUB.md) | Repository access and how to save changes |
 | [AGENTS.md](AGENTS.md) | Working agreement and non-negotiable project constraints |

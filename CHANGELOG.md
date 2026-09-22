@@ -1,5 +1,11 @@
 # Changelog
 
+## Policy backtest and usability protocol - 22 September 2026
+
+- Added a policy backtest (`heataction/policy_evaluation.py`, `python -m heataction compare-policies`) that replays historical WBGT data and scores the shipped allocation policy against four naive baselines. On the synthetic demo dataset: the shipped policy caught 93.1% of genuinely-High-heat timesteps versus 17.1% for a population-only baseline and 100% for a heat-only oracle baseline, with the gap to the oracle explained by the policy's deliberate demographic weighting.
+- Added a six-task coordinator usability-test protocol (`docs/USABILITY_TEST.md`) for a real, naive participant, and verified all six tasks are mechanically completable via a scripted browser walkthrough — explicitly not a substitute for running the protocol with an actual person.
+- Added 4 new unit tests; all 33 regression tests pass.
+
 ## Databricks demographic tables and App - 22 September 2026
 
 - Added `notebooks/03_geography_and_plan_databricks.py`: uploads the reviewed Census/URA/mapping snapshots to a Unity Catalog volume, rebuilds the pilot via the same validation as the local app, and writes `heataction_silver.area_demographics`, `heataction_silver.pilot_mapping_audit`, and a `heataction_gold.area_priority_plan` table materialised by calling `heataction.planner.build_plan` directly.

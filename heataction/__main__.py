@@ -24,6 +24,11 @@ def main():
     serve.add_argument("--pilot", action="store_true", help="Load the reviewed three-area Census 2020 / MP2019 pilot and map (observed mode only)")
     evaluate = sub.add_parser("evaluate", help="Run exploratory chronological model comparison")
     evaluate.add_argument("--mode", choices=["demo", "observed"], default="demo")
+    compare = sub.add_parser("compare-policies", help="Backtest the allocation policy against naive baselines")
+    compare.add_argument("--mode", choices=["demo", "observed"], default="demo")
+    compare.add_argument("--budget", type=int, default=1)
+    compare.add_argument("--count-weight", type=float, default=0.5)
+    compare.add_argument("--contacts", type=int, default=10)
     args = parser.parse_args()
     try:
         if args.command == "demo":
@@ -58,11 +63,26 @@ def main():
         elif args.command == "serve":
             from .server import serve
             serve(args.mode, args.port, args.areas, pilot=args.pilot)
-        else:
+        elif args.command == "evaluate":
             from .evaluation import evaluate
             report = evaluate(observations(Path(f"data/runtime/{args.mode}")),
                               mode="synthetic" if args.mode == "demo" else "observed")
             path = Path("artifacts") / f"evaluation_{args.mode}.json"
+            path.parent.mkdir(exist_ok=True)
+            path.write_text(json.dumps(report, indent=2, allow_nan=False), encoding="utf-8")
+            print(json.dumps(report, indent=2))
+            print(f"Saved {path}")
+        else:
+            from .policy_evaluation import compare_policies
+            if args.mode == "demo":
+                from .demo import DEMO_AREAS
+                areas = DEMO_AREAS
+            else:
+                from .geography import build_pilot
+                areas = build_pilot()["areas"]
+            report = compare_policies(areas, observations(Path(f"data/runtime/{args.mode}")),
+                                      budget=args.budget, contacts=args.contacts, count_weight=args.count_weight)
+            path = Path("artifacts") / f"policy_comparison_{args.mode}.json"
             path.parent.mkdir(exist_ok=True)
             path.write_text(json.dumps(report, indent=2, allow_nan=False), encoding="utf-8")
             print(json.dumps(report, indent=2))
